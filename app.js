@@ -17,31 +17,31 @@ const app = express();
 // 解析 JSON 格式的請求主體
 app.use(express.json());
 // 解析 URL-encoded 格式的資料（表單提交）
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({ extended: true }));
 
 //5. 設定CORS 中間件，允許來自指令來源的請求 CLIENT_ORIGIN=https://your-frontend-url.com
 
 app.use(cors({
-    origin: process.env.CLIENT_ORIGIN, // 根據前端網址進行調整
-    credentials: true // 如果需要傳遞 Cookie 或身份驗證資訊
+  origin: process.env.CLIENT_ORIGIN, // 根據前端網址進行調整
+  credentials: true // 如果需要傳遞 Cookie 或身份驗證資訊
 }))
 
 // 6. 日誌中間件：每次請求時輸出請求方法與路由
 //日誌中間件：紀錄每次請求的HTTP 方法與路由
-app.use((req, res, next)=> {
-    console.log(`${req.method} ${req.url}`);
-    next();
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
 });
 
 
 // 7. 載入各個路由模組
 const userRoutes = require('./routes/userRoutes');
 const postRoutes = require('./routes/postRoutes');
-// const commentRoutes = require('./routes/commentRoutes');
-// const paymentRoutes = require('./routes/paymentRoutes');
-// const subscriptionRoutes = require('./routes/subscriptionRoutes');
-// const categoryRoutes = require('./routes/categoryRoutes');
-// const tagRoutes = require('./routes/tagRoutes');
+const commentRoutes = require('./routes/commentRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const subscriptionRoutes = require('./routes/subscriptionRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
+const tagRoutes = require('./routes/tagRoutes');
 // const postTagRoutes = require('./routes/postTagRoutes');
 
 
@@ -49,16 +49,16 @@ const postRoutes = require('./routes/postRoutes');
 // 如：當請求以 /api/users 開頭時，交由 userRoutes 處理
 app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
-// app.use('/api/comments', commentRoutes);
-// app.use('/api/payments', paymentRoutes);
-// app.use('/api/subscriptions', subscriptionRoutes);
-// app.use('/api/categories', categoryRoutes);
-// app.use('/api/tags', tagRoutes);
+app.use('/api/comments', commentRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/tags', tagRoutes);
 // app.use('/api/post-tags', postTagRoutes);
 
 // 9. 測試路由：確認伺服器是否運作正常
 app.get('/', (req, res) => {
-    res.send('Express.js Server is running.');
+  res.send('Express.js Server is running.');
 });
 
 
@@ -70,19 +70,19 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 5001;
 
 async function startServer() {
-    try {
-        // 初始化資料庫
-        await initializeDatabase();
-        console.log('Database initialization complete.');
+  try {
+    // 初始化資料庫
+    await initializeDatabase();
+    console.log('Database initialization complete.');
 
-        // 啟動 Express 伺服器
-        app.listen(PORT, () => {
-            console.log(`Server is running on http://localhost:${PORT}`);
-        });
-    } catch (error) {
-        console.error('Error during database initialization:', error);
-        process.exit(1); // 發生錯誤時終止應用程式
-    }
+    // 啟動 Express 伺服器
+    app.listen(PORT, () => {
+      console.log(`Server is running on http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error('Error during database initialization:', error);
+    process.exit(1); // 發生錯誤時終止應用程式
+  }
 }
 
 // 11. 執行伺服器啟動
