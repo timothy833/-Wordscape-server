@@ -1,9 +1,14 @@
+const { ssl, connectionString } = require('pg/lib/defaults');
+
 require('dotenv').config();
 
 module.exports = {
     development: {
         client: 'pg', // 使用 PostgreSQL
-        connection: process.env.DATABASE_URL, // 從環境變數讀取連線字串
+        connection: {
+            connectionString: process.env.DATABASE_URL, // 從環境變數讀取連線字串
+            ssl: {rejectUnauthorized: false },  // 啟用 SSL 但不驗證憑證
+        },
         migrations: {
             directory: './migrations'  // 指定 migration 檔案存放的資料夾
         },
@@ -13,7 +18,10 @@ module.exports = {
     },
     production: {
         client: 'pg',
-        connection: process.env.DATABASE_URL,
+        connection: {
+            connectionString: process.env.DATABASE_URL, // 從環境變數讀取連線字串
+            ssl: {rejectUnauthorized: false },  // 啟用 SSL 但不驗證憑證
+        },
         migrations: {
             directory: './migrations'
         },
@@ -21,5 +29,4 @@ module.exports = {
             directory: './migration'
         }
     }
-
 }
