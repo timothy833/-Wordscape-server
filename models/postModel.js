@@ -176,6 +176,7 @@ exports.getPostsByUser = async (userId) => {
 
 exports.getFullPostsWithComments = async () => {
   try {
+    // 取得所有文章資訊
     const postResult = await db.query(`
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
@@ -186,11 +187,39 @@ exports.getFullPostsWithComments = async () => {
       LEFT JOIN post_likes ON posts.id = post_likes.post_id
       GROUP BY posts.id, users.username, categories.id, categories.name;
     `);
-
     const posts = postResult.rows;
 
-    // 取得 `tags`
+    if (posts.length === 0) return posts;
+
+    // 取得所有文章的 ID
     const postIds = posts.map(post => post.id);
+
+    // 查詢這些文章的留言（包含巢狀留言）
+    const commentResult = await db.query(`
+      SELECT comments.*, users.username AS user_name
+      FROM comments
+      JOIN users ON comments.user_id = users.id
+      WHERE comments.post_id = ANY($1)
+      ORDER BY comments.created_at ASC;
+    `, [postIds]);
+
+    const comments = commentResult.rows;
+
+    // 建立留言的巢狀結構
+    const commentMap = {};
+    comments.forEach(comment => commentMap[comment.id] = { ...comment, replies: [] });
+
+    const nestedComments = {};
+    comments.forEach(comment => {
+      if (!nestedComments[comment.post_id]) nestedComments[comment.post_id] = [];
+      if (comment.parent_comment_id) {
+        commentMap[comment.parent_comment_id]?.replies.push(commentMap[comment.id]);
+      } else {
+        nestedComments[comment.post_id].push(commentMap[comment.id]);
+      }
+    });
+
+    // 查詢文章標籤
     const tagResult = await db.query(`
       SELECT post_tags.post_id, tags.id, tags.name
       FROM tags
@@ -204,8 +233,10 @@ exports.getFullPostsWithComments = async () => {
       tagMap[tag.post_id].push({ id: tag.id, name: tag.name });
     });
 
+    // 合併文章與留言
     posts.forEach(post => {
       post.tags = tagMap[post.id] || [];
+      post.comments = nestedComments[post.id] || [];
     });
 
     return posts;
