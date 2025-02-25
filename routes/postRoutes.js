@@ -1,9 +1,11 @@
 const express = require('express');
 const postController = require('../controllers/postController');
 const authMiddleware = require('../middlewares/authMiddleware');
-
+const multer = require('multer');
+const fs = require("fs");
 const router = express.Router();
 
+// 文章相關 API
 router.get('/', postController.getPosts);
 router.get('/full', postController.getFullPostsWithComments);
 router.get('/:id', postController.getPostById);
@@ -19,4 +21,38 @@ router.post("/post_likes/:postId", authMiddleware, postController.togglePostLike
 router.patch('/:id', authMiddleware, postController.updatePost);
 router.delete('/:id', authMiddleware, postController.deletePost);
 
+
+// **Multer - 使用本地磁碟作為暫存**  ✅ 設定 Multer，確保 `uploads/` 目錄存在
+// ✅ 設定 Multer，確保 `uploads/` 目錄存在
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+      const uploadPath = "uploads/";
+      if (!fs.existsSync(uploadPath)) {
+          fs.mkdirSync(uploadPath, { recursive: true });
+      }
+      cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+      cb(null, Date.now() + "-" + file.originalname);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // ✅ 單張圖片最大 10MB
+});
+
+
+//上傳封面圖
+router.post("/upload/cover", authMiddleware, upload.single("cover"), postController.uploadCoverImage);
+
+//上傳Quill 文章內圖片
+router.post("/upload/content", authMiddleware, postController.uploadContentImage);
+
+
+// ✅ 代理圖片（Cloudflare Cache）
+router.get("/proxy/image", postController.proxyImage);
+
+
 module.exports = router;
+

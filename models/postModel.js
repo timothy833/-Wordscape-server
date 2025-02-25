@@ -5,7 +5,8 @@ exports.getPosts = async () => {
     const postResult = await db.query(`
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
-             COUNT(post_likes.user_id) AS likes_count
+             COUNT(post_likes.user_id) AS likes_count,
+             posts.image_url  -- 新增封面圖片 URL 欄位
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -46,7 +47,8 @@ exports.getPostById = async (id) => {
     const postResult = await db.query(`
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
-             COUNT(post_likes.user_id) AS likes_count
+             COUNT(post_likes.user_id) AS likes_count,
+             posts.image_url  -- 新增封面圖片 URL 欄位
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -89,7 +91,8 @@ exports.getPostsByCategory = async (categoryId) => {
     const postResult = await db.query(`
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
-             COUNT(post_likes.user_id) AS likes_count
+             COUNT(post_likes.user_id) AS likes_count,
+             posts.image_url  -- 新增封面圖片 URL
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -133,7 +136,8 @@ exports.getPostsByUser = async (userId) => {
     const postResult = await db.query(`
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
-             COUNT(post_likes.user_id) AS likes_count
+             COUNT(post_likes.user_id) AS likes_count,
+             posts.image_url  -- 新增封面圖片 URL
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -179,7 +183,8 @@ exports.getFullPostsWithComments = async () => {
     const postResult = await db.query(`
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
-             COUNT(post_likes.user_id) AS likes_count
+             COUNT(post_likes.user_id) AS likes_count,
+             posts.image_url  -- 新增封面圖片 URL
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -221,10 +226,10 @@ exports.getFullPostsWithComments = async () => {
 exports.createPost = async (postData, tagNames) => {
   try {
     const postResult = await db.query(`
-          INSERT INTO posts (id, user_id, category_id, title, content, status)
-          VALUES ($1, $2, $3, $4, $5, $6)
+          INSERT INTO posts (id, user_id, category_id, title, content, status, image_url)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
           RETURNING *;
-      `, [postData.id, postData.user_id, postData.category_id, postData.title, postData.content, postData.status]);
+      `, [postData.id, postData.user_id, postData.category_id, postData.title, postData.content, postData.status, postData.image_url]);
 
     const post = postResult.rows[0];
 

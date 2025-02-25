@@ -13,6 +13,16 @@ exports.createCategory = async (name) => {
   }
 };
 
+exports.getCategoryByName = async (name) => {
+  try{
+    const result = await db.query("SELECT * FROM categories WHERE name = $1", [name]);
+    return result.rows[0]; // ✅ 回傳分類
+  } catch (error) {
+    throw error;
+  }
+};
+
+
 exports.getAllCategories = async () => {
   try {
     const result = await db.query(`SELECT * FROM categories ORDER BY name ASC;`);

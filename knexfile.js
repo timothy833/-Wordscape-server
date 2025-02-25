@@ -7,7 +7,7 @@ module.exports = {
         client: 'pg', // 使用 PostgreSQL
         connection: {
             connectionString: process.env.DATABASE_URL, // 從環境變數讀取連線字串
-            ssl: {rejectUnauthorized: false },  // 啟用 SSL 但不驗證憑證
+            ssl: false ,  // 開發環境不需要啟用 SSL 
         },
         migrations: {
             directory: './migrations'  // 指定 migration 檔案存放的資料夾

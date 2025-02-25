@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.post('/', authMiddleware, categoryController.createCategory);
 router.get('/', categoryController.getAllCategories);
+router.get('/get-category', categoryController.getCategoryByName);
 router.delete('/:id', authMiddleware, categoryController.deleteCategory);
 
 module.exports = router;
