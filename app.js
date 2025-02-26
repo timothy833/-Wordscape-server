@@ -41,6 +41,27 @@ app.use((req, res, next) => {
 });
 
 
+// ✅ 限制所有 API（15 分鐘最多 100 次請求）
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 分鐘
+  max: 100,
+  message: { error: "請求過於頻繁，請稍後再試" },
+});
+app.use(globalLimiter);
+
+// ✅ 限制 `/api/proxy/image`（5 分鐘最多 30 次請求）
+const imageLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 分鐘
+  max: 30,
+  message: { error: "圖片 API 請求過於頻繁，請稍後再試" },
+});
+
+const proxyImageRoutes = require('./routes/proxyImageRoutes');
+app.use("/api/proxyImage", proxyImageRoutes);
+app.use("/api/proxyImage", imageLimiter);
+
+
+
 // 7. 載入各個路由模組
 const userRoutes = require('./routes/userRoutes');
 const postRoutes = require('./routes/postRoutes');

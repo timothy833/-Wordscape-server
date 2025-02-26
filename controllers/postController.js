@@ -66,7 +66,7 @@ const uploadToR2 = async (file, folder) =>{
     // **本地 vs 雲端 儲存不同 URL**
     const resultUrl = process.env.NODE_ENV === "development"
     ? await getSignedUrl(s3, new GetObjectCommand(uploadParams), { expiresIn: 604800 })
-    : `${process.env.CDN_BASE_URL}/api/proxy/image?key=${fileName}`;
+    : `${process.env.CDN_BASE_URL}?key=${fileName}`;
 
     console.log("📌 返回的圖片 URL:", resultUrl);
     return resultUrl;
@@ -130,25 +130,25 @@ exports.uploadContentImage = async (req, res) => {
 };
 
 // **代理 Cloudflare R2 讀取圖片**
-exports.proxyImage = async (req, res) => {
-  try {
-    const { key } = req.query;
-    if (!key) return res.status(400).json({ error: "缺少圖片 key" });
+// exports.proxyImage = async (req, res) => {
+//   try {
+//     const { key } = req.query;
+//     if (!key) return res.status(400).json({ error: "缺少圖片 key" });
 
-    const command = new GetObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
-      Key: key,
-    });
+//     const command = new GetObjectCommand({
+//       Bucket: process.env.R2_BUCKET_NAME,
+//       Key: key,
+//     });
 
 
-    const signedUrl = await getSignedUrl(s3, command, { expiresIn: 604800 }); // 7 天簽名 URL
+//     const signedUrl = await getSignedUrl(s3, command, { expiresIn: 604800 }); // 7 天簽名 URL
 
-    return res.redirect(signedUrl);// 使用快取模式讀取簽名url
-  } catch (error) {
-    console.error("圖片代理錯誤:", error);
-    res.status(500).json({ error: "無法取得圖片" });
-  }
-};
+//     return res.redirect(signedUrl);// 使用快取模式讀取簽名url
+//   } catch (error) {
+//     console.error("圖片代理錯誤:", error);
+//     res.status(500).json({ error: "無法取得圖片" });
+//   }
+// };
 
 // **取得所有文章**
 exports.getPosts = async (req, res) => {
