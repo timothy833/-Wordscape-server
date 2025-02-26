@@ -51,7 +51,7 @@ router.post("/upload/content", authMiddleware, postController.uploadContentImage
 
 
 // ✅ 代理圖片（Cloudflare Cache）
-router.get("/proxy/image", postController.proxyImage);
+// router.get("/proxy/image", postController.proxyImage);
 
 
 module.exports = router;

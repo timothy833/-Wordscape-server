@@ -1,6 +1,6 @@
 const { GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
-const { s3 } = require("../config/s3");
+const { s3 } = require("../config-s3");
 
 
 // **代理Cloud flare產生 Cloudflare R2圖片簽名網址**
