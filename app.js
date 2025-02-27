@@ -12,6 +12,8 @@ const rateLimit = require("express-rate-limit"); //限制請求次數
 const app = express();
 
 
+// ✅ 忽略 `/favicon.ico`，避免 400 錯誤
+app.get("/favicon.ico", (req, res) => res.status(204).end());
 
 
 //4. 設置內建中間件:使用Express 內建中間件
