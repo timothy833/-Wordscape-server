@@ -48,7 +48,7 @@ const uploadToR2 = async (file, folder) =>{
     //初始化  ✅ 設定上傳參數 **上傳到 R2**
     const uploadParams = {
       Bucket: process.env.R2_BUCKET_NAME,
-      Key: fileName,  // **這裡改成 `encodedFileName`**
+      Key: fileName,  
       Body: fileBuffer,
       ContentType: file.mimetype || "image/png",
     }
