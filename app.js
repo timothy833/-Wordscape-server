@@ -49,7 +49,7 @@ const globalLimiter = rateLimit({
   max: 100,
   message: { error: "請求過於頻繁，請稍後再試" },
 });
-app.use(globalLimiter);
+app.use("/api", globalLimiter);
 
 // ✅ 限制 `/api/proxy/image`（5 分鐘最多 30 次請求）
 const imageLimiter = rateLimit({
