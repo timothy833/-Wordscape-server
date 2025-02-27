@@ -6,13 +6,13 @@ const { s3 } = require("../config-s3");
 // **代理Cloud flare產生 Cloudflare R2圖片簽名網址**
 exports.proxyImage = async (req, res) => {
   try {
-    const { key } = req.query;
-    if (!key) return res.status(400).json({ error: "缺少圖片 key" });
+    const fileKey = decodeURIComponent(req.query.key); // ✅ 確保 URL 解析正確
+    if (!fileKey) return res.status(400).json({ error: "缺少圖片 key" });
 
     // ✅ 直接產生新的簽名 URL（但 Cloudflare Workers 會負責快取，避免頻繁請求）
     const command = new GetObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
-      Key: key,
+      Key: fileKey,
     });
 
     const signedUrl = await getSignedUrl(s3, command, { expiresIn: 604800 }); // 7 天有效

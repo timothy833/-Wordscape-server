@@ -31,43 +31,48 @@ const uploadToR2 = async (file, folder) =>{
       fileName = `${folder}/${Date.now()}.png`; // **確保唯一檔名**
     } 
     else if (file.path) {
-      //正常檔案上傳 ✅ 處理一般檔案上傳
-     fileBuffer = fs.readFileSync(file.path);
-     fileName = `${folder}/${Date.now()}-${file.originalname}`; // 保留原始檔名
+      //正常檔案上傳 ✅ 處理一般檔案上傳 避免 R2 亂碼
+      fileBuffer = fs.readFileSync(file.path);
+      let sanitizedFileName = file.originalname.normalize("NFC") 
+            .replace(/\s/g, "_")  // 空格轉 `_`
+            .replace(/[^\w.-]/g, ""); // 過濾特殊字符
+      fileName = `${folder}/${Date.now()}-${sanitizedFileName}`; 
     }
     else {
       throw new Error("無效的圖片格式");
     }
 
+    // ✅ **確保 R2 存取 Key 也是編碼過的**
+    const encodedFileName = encodeURIComponent(fileName);
+
     //初始化  ✅ 設定上傳參數 **上傳到 R2**
     const uploadParams = {
       Bucket: process.env.R2_BUCKET_NAME,
-      Key: fileName, 
+      Key: encodedFileName,  // **這裡改成 `encodedFileName`**
       Body: fileBuffer,
       ContentType: file.mimetype || "image/png",
     }
 
 
-    // ✅ 使用 `PutObjectCommand`
+    // ✅ 使用 `PutObjectCommand` ✅ 上傳到 R2
     const command = new PutObjectCommand(uploadParams);
     await s3.send(command);
 
     console.log("✅ 圖片成功上傳到 R2");
     
     // 上傳成功後刪除本地檔案
-   // ✅ 確保刪除本地檔案
-   if (file.path) {
+   // ✅ 確保刪除本地檔案  
+   if (file.path && fs.existsSync(file.path)) {
     fs.unlink(file.path, (err) => {
       if (err) console.error("❌ 刪除本地檔案失敗:", err);
       else console.log("✅ 本地檔案刪除成功:", file.path);
     });
   }
-    console.log("📌 圖片已成功上傳，返回的 URL:", fileName);
 
     // **本地 vs 雲端 儲存不同 URL**
     const resultUrl = process.env.NODE_ENV === "development"
     ? await getSignedUrl(s3, new GetObjectCommand(uploadParams), { expiresIn: 604800 })
-    : `${process.env.CDN_BASE_URL}?key=${fileName}`;
+    : `${process.env.CDN_BASE_URL}?key=${encodedFileName}`; // **確保 URL 解析**
 
     console.log("📌 返回的圖片 URL:", resultUrl);
     return resultUrl;
