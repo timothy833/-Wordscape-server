@@ -16,8 +16,18 @@ exports.proxyImage = async (req, res) => {
     });
 
     const signedUrl = await getSignedUrl(s3, command, { expiresIn: 604800 }); // 7 天有效
+    console.log("📌 Render Server 取得 R2 簽名 URL:", signedUrl);
 
-    return res.json({ signedUrl });
+    const imageResponse = await fetch(signedUrl);
+    if (!imageResponse.ok) throw new Error("圖片獲取失敗");
+
+    const contentType = imageResponse.headers.get("Content-Type");
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400");
+    
+    console.log("✅ Render Server 直接回應圖片");
+    imageResponse.body.pipe(res);
   } catch (error) {
     console.error("圖片代理錯誤:", error);
     res.status(500).json({ error: "無法取得圖片" });
