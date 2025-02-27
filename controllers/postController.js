@@ -43,12 +43,12 @@ const uploadToR2 = async (file, folder) =>{
     }
 
     // ✅ **確保 R2 存取 Key 也是編碼過的**
-    const encodedFileName = encodeURIComponent(fileName);
+    // const encodedFileName = encodeURIComponent(fileName);
 
     //初始化  ✅ 設定上傳參數 **上傳到 R2**
     const uploadParams = {
       Bucket: process.env.R2_BUCKET_NAME,
-      Key: encodedFileName,  // **這裡改成 `encodedFileName`**
+      Key: fileName,  // **這裡改成 `encodedFileName`**
       Body: fileBuffer,
       ContentType: file.mimetype || "image/png",
     }
