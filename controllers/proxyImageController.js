@@ -20,14 +20,17 @@ exports.proxyImage = async (req, res) => {
 
     const imageResponse = await fetch(signedUrl);
     if (!imageResponse.ok) throw new Error("圖片獲取失敗");
-
+  
+    // 取得 Content-Type
     const contentType = imageResponse.headers.get("Content-Type");
-
     res.setHeader("Content-Type", contentType);
     res.setHeader("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400");
-    
+
+    // ✅ 轉換 fetch Response Body 為 Node.js 可讀流
+    const stream = Readable.from(imageResponse.body);
+    // imageResponse.body.pipe(res);
     console.log("✅ Render Server 直接回應圖片");
-    imageResponse.body.pipe(res);
+    stream.pipe(res);
   } catch (error) {
     console.error("圖片代理錯誤:", error);
     res.status(500).json({ error: "無法取得圖片" });
