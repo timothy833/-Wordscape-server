@@ -1,7 +1,7 @@
 const { GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const { s3 } = require("../config-s3");
-
+const { Readable } = require("stream"); // ✅ 內建模組，無需安裝
 
 // **代理Cloud flare產生 Cloudflare R2圖片簽名網址**
 exports.proxyImage = async (req, res) => {
