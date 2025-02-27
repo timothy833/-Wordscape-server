@@ -72,7 +72,7 @@ const uploadToR2 = async (file, folder) =>{
     // **本地 vs 雲端 儲存不同 URL**
     const resultUrl = process.env.NODE_ENV === "development"
     ? await getSignedUrl(s3, new GetObjectCommand(uploadParams), { expiresIn: 604800 })
-    : `${process.env.CDN_BASE_URL}?key=${encodedFileName}`; // **確保 URL 解析**
+    : `${process.env.CDN_BASE_URL}?key=${fileName}`; // **確保 URL 解析**
 
     console.log("📌 返回的圖片 URL:", resultUrl);
     return resultUrl;
