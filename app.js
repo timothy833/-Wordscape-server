@@ -6,25 +6,34 @@ console.log('Environment Variables:', process.env);
 const express = require('express');
 const cors = require('cors');
 const { initializeDatabase } = require('./initDb'); // 正確匯入資料庫初始化函數
+const rateLimit = require("express-rate-limit"); //限制請求次數
 
 //3.建立Express應用
 const app = express();
 
 
+// ✅ 忽略 `/favicon.ico`，避免 400 錯誤
+app.get("/favicon.ico", (req, res) => res.status(204).end());
 
 
 //4. 設置內建中間件:使用Express 內建中間件
+// 解析 JSON 格式的請求主體，並設定請求體大小限制
 // 解析 JSON 格式的請求主體
-app.use(express.json());
+app.use(express.json({ limit: "100mb" }));
 // 解析 URL-encoded 格式的資料（表單提交）
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 
 //5. 設定CORS 中間件，允許來自指令來源的請求 CLIENT_ORIGIN=https://your-frontend-url.com
 
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN, // 根據前端網址進行調整
-  credentials: true // 如果需要傳遞 Cookie 或身份驗證資訊
+  origin:  process.env.CLIENT_ORIGIN || "*", // 根據前端網址進行調整process.env.// 解析 JSON 格式的請求主體，並設定請求體大小限制
+  credentials: true, // 如果需要傳遞 Cookie 或身份驗證資訊
+  maxAge: 86400,// ✅ CORS 設定快取 1 天
+  allowedHeaders: ["Content-Type", "Authorization"],  // ✅ 允許這些標頭
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 }))
+
+app.options("*", cors()); // ✅ 允許所有路由的 OPTIONS 預檢請求
 
 // 6. 日誌中間件：每次請求時輸出請求方法與路由
 //日誌中間件：紀錄每次請求的HTTP 方法與路由
@@ -32,6 +41,27 @@ app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
   next();
 });
+
+
+// ✅ 限制所有 API（15 分鐘最多 100 次請求）
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 分鐘
+  max: 100,
+  message: { error: "請求過於頻繁，請稍後再試" },
+});
+app.use("/api", globalLimiter);
+
+// ✅ 限制 `/api/proxy/image`（5 分鐘最多 30 次請求）
+const imageLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 分鐘
+  max: 30,
+  message: { error: "圖片 API 請求過於頻繁，請稍後再試" },
+});
+
+const proxyImageRoutes = require('./routes/proxyImageRoutes');
+app.use("/api/proxyImage", proxyImageRoutes);
+app.use("/api/proxyImage", imageLimiter);
+
 
 
 // 7. 載入各個路由模組
@@ -62,8 +92,24 @@ app.get('/', (req, res) => {
 });
 
 
-// 9. 載入資料庫初始化模組（用於建立資料表）
-// const initDb = require('./initDb');
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 分鐘
+  max: 100, // 15 分鐘內最多 100 次請求
+  message: "請求過於頻繁，請稍後再試"
+});
+
+// ✅ 限制所有 API
+app.use(limiter);
+
+
+// 12. 全域錯誤處理中間件
+app.use((err, req, res, next) => {
+  console.error("Unhandled Error:", err.stack);
+  res.status(err.status || 500).json({
+      status: "error",
+      message: err.message || "伺服器錯誤，請稍後再試"
+  });
+});
 
 // 10. 啟動伺服器，並在啟動後初始化資料庫 
 //取得環境變數中的 PORT 設定，若未定義則預設為 5000

@@ -1,16 +1,21 @@
 const db = require('../db');
 const bcrypt = require('bcrypt'); //用於密碼加密
 
+
+// 取得所有使用者
 exports.getAllUsers = async ()=>{
     const result = await db.query('SELECT * FROM users');
     return result.rows;
 };
 
+// 透過 ID 取得使用者
 exports.getUserById = async (id) =>{
     const result = await db.query('SELECT * FROM users WHERE id = $1', [id]);
     return result.rows[0];
 };
 
+
+// 透過 Email 取得使用者
 exports.getUserByEmail = async(email) => {
     const result = await db.query(`
         SELECT * FROM users WHERE email = $1
@@ -18,6 +23,7 @@ exports.getUserByEmail = async(email) => {
     return result.rows[0];
 }
 
+// 創建新使用者
 exports.createUser = async(user) =>{
     try {
         const {username, email, password, bio, profile_picture } = user;
@@ -33,6 +39,7 @@ exports.createUser = async(user) =>{
         }
        //將密碼加密
        const hashedPassword = await bcrypt.hash(password, 10);
+       
        const result = await db.query(`
            INSERT INTO users(username, email, password, bio, profile_picture)
            VALUES ($1, $2, $3, $4, $5) RETURNING * `,
@@ -47,14 +54,22 @@ exports.createUser = async(user) =>{
    
 }
 
-exports.updateUser = async (id, user)=>{
+// 更新使用者資訊（支援更改密碼）
+exports.updateUser = async (id, updateFields)=>{
     try {
-        const {username, email, bio, profile_picture } = user;
-        const result = await db.query(`
-            UPDATE users SET username = $1, email= $2, bio= $3, profile_picture= $4
-            WHERE id = $5 RETURNING id, username, email, bio, profile_picture;`,
-            [username, email, bio, profile_picture, id]
-        );
+        const keys = Object.keys(updateFields);
+        const values = Object.values(updateFields);
+        let setQuery = keys.map((key, index) => `${key} = $${index + 1}`).join(", ");
+        
+        const query = `
+            UPDATE users SET ${setQuery}
+            WHERE id = $${keys.length + 1}
+            RETURNING id, username, email, bio, profile_picture;
+        `;
+
+        values.push(id);
+        const result = await db.query(query, values);
+
         if (result.rows.length === 0) {
             throw new Error("User not found");
         }
@@ -66,6 +81,20 @@ exports.updateUser = async (id, user)=>{
    
 };
 
+// 更新使用者密碼
+exports.updateUserPassword = async (id, hashedPassword) => {
+    try {
+        const result = await db.query(`UPDATE users SET password = $1 WHERE id = $2 RETURNING id, username, email;`, [hashedPassword, id]);
+        if(result.rows.length === 0){
+            throw new Error ("User not found");
+        }
+        return result.rows[0];
+    } catch (error) {
+        throw error;
+    }
+}
+
+// 刪除使用者
 exports.deleteUser = async (id) => {
     await db.query('DELETE FROM users WHERE id = $1', [id]);
 };

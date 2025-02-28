@@ -13,8 +13,8 @@ module.exports = (req, res, next) => {
   //可加token驗證邏輯(例如：jwt.verify())
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // 將解碼後的 payload 存入 req.user
-    next();
+    req.user = decoded; // 將解碼後的 payload 存入 req.user  ✅ 驗證成功，將用戶資訊存入 `req.user`
+    next(); // ✅ 讓請求繼續執行到 `tagController.createTag`
   } catch (error) {
     return res.status(401).json({ error: 'Token 無效或已過期' });
   }
