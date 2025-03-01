@@ -26,8 +26,8 @@ app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 //5. 設定CORS 中間件，允許來自指令來源的請求 CLIENT_ORIGIN=https://your-frontend-url.com
 
 app.use(cors({
-  origin:  process.env.CLIENT_ORIGIN || "*", // 根據前端網址進行調整process.env.// 解析 JSON 格式的請求主體，並設定請求體大小限制
-  credentials: true, // 如果需要傳遞 Cookie 或身份驗證資訊
+  origin: process.env.CLIENT_ORIGIN, // 根據前端網址進行調整process.env.// 解析 JSON 格式的請求主體，並設定請求體大小限制
+  credentials: false, // 如果需要傳遞 Cookie 或身份驗證資訊 ✅ 關閉 credentials（不再讓瀏覽器自動攜帶 Cookie）
   maxAge: 86400,// ✅ CORS 設定快取 1 天
   allowedHeaders: ["Content-Type", "Authorization"],  // ✅ 允許這些標頭
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
@@ -92,14 +92,6 @@ app.get('/', (req, res) => {
 });
 
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 分鐘
-  max: 100, // 15 分鐘內最多 100 次請求
-  message: "請求過於頻繁，請稍後再試"
-});
-
-// ✅ 限制所有 API
-app.use(limiter);
 
 
 // 12. 全域錯誤處理中間件

@@ -11,13 +11,13 @@ router.post('/login', userController.login);
 
 //使用者管理 （需要 `authMiddleware` 驗證）
 //取得所有使用者
-router.get('/', authMiddleware,userController.getUsers);
+router.get('/', userController.getUsers);
 //取得單一使用者
-router.get('/:id',authMiddleware ,userController.getUser);
+router.get('/:id', userController.getUser);
 //更新使用者
-router.put('/:id',authMiddleware ,userController.updateUser);
+router.put('/:id', authMiddleware, userController.updateUser);
 //刪除使用者
-router.delete('/:id',authMiddleware ,userController.deleteUser);
+router.delete('/:id', authMiddleware , userController.deleteUser);
 
 //密碼管理 （不需要 JWT，因為 Token 來自 Email）
 router.post('/forgot-password', userController.forgotPassword);
