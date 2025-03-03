@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.post('/', authMiddleware, paymentController.createPayment);
 router.get('/', authMiddleware, paymentController.getAllPayments);
-router.get('/user/:userId', authMiddleware, paymentController.getPaymentsByUser);
+router.get('/sent', authMiddleware, paymentController.getPaymentsSent);
+router.get('/received', authMiddleware, paymentController.getPaymentsReceived);
 
 module.exports = router;
