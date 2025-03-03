@@ -1,50 +1,48 @@
 const subscriptionModel = require('../models/subscriptionModel');
 
-exports.createSubscription = async (req, res) => {
+exports.toggleSubscription = async (req, res) => {
   try {
-    const { subscribed_to } = req.body;
-
+    const { user_id } = req.params;
     if (!req.user || !req.user.id) {
       return res.status(401).json({ status: "error", message: "未授權，請登入" });
     }
 
-    if (req.user.id === subscribed_to) {
+    if (req.user.id === user_id) {
       return res.status(400).json({ status: "error", message: "無法訂閱自己" });
     }
 
-    const subscription = await subscriptionModel.createSubscription(req.user.id, subscribed_to);
-    res.status(201).json({ status: "success", data: subscription });
+    const result = await subscriptionModel.toggleSubscription(req.user.id, user_id);
+    res.json({ status: "success", subscribed: result.subscribed });
   } catch (error) {
-    res.status(500).json({ status: "error", message: error.message || "無法建立訂閱" });
+    console.error("訂閱操作失敗:", error);
+    res.status(500).json({ status: "error", message: "無法操作訂閱" });
   }
 };
 
-exports.getSubscriptionsByUser = async (req, res) => {
+exports.getSubscriptions = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const subscriptions = await subscriptionModel.getSubscriptionsByUser(userId);
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ status: "error", message: "未授權，請登入" });
+    }
+
+    const subscriptions = await subscriptionModel.getSubscriptionsByUser(req.user.id);
     res.json({ status: "success", data: subscriptions });
   } catch (error) {
+    console.error("無法獲取訂閱清單:", error);
     res.status(500).json({ status: "error", message: "無法獲取訂閱清單" });
   }
 };
 
-exports.getFollowersByUser = async (req, res) => {
+exports.getFollowers = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const followers = await subscriptionModel.getFollowersByUser(userId);
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ status: "error", message: "未授權，請登入" });
+    }
+
+    const followers = await subscriptionModel.getFollowersByUser(req.user.id);
     res.json({ status: "success", data: followers });
   } catch (error) {
-    res.status(500).json({ status: "error", message: "無法獲取追蹤者名單" });
-  }
-};
-
-exports.deleteSubscription = async (req, res) => {
-  try {
-    const { id } = req.params;
-    await subscriptionModel.deleteSubscription(id);
-    res.json({ status: "success", message: "已取消訂閱" });
-  } catch (error) {
-    res.status(500).json({ status: "error", message: "無法取消訂閱" });
+    console.error("無法獲取被訂閱清單:", error);
+    res.status(500).json({ status: "error", message: "無法獲取被訂閱清單" });
   }
 };

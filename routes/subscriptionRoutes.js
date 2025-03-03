@@ -4,9 +4,8 @@ const authMiddleware = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
-router.post('/', authMiddleware, subscriptionController.createSubscription);
-router.get('/user/:userId', authMiddleware, subscriptionController.getSubscriptionsByUser);
-router.get('/followers/:userId', authMiddleware, subscriptionController.getFollowersByUser);
-router.delete('/:id', authMiddleware, subscriptionController.deleteSubscription);
+router.post('/:user_id', authMiddleware, subscriptionController.toggleSubscription);
+router.get('/', authMiddleware, subscriptionController.getSubscriptions);
+router.get('/followers', authMiddleware, subscriptionController.getFollowers);
 
 module.exports = router;
