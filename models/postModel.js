@@ -7,7 +7,7 @@ exports.getPosts = async () => {
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
              COUNT(post_favorites.user_id) AS favorites_count,
-             posts.image_url  -- 新增封面圖片 URL 欄位
+             posts.image_url,posts.views_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -46,12 +46,18 @@ exports.getPosts = async () => {
 
 exports.getPostById = async (id) => {
   try {
+    // 先增加點閱數（views_count +1）
+    await db.query(`
+      UPDATE posts 
+      SET views_count = views_count + 1
+      WHERE id = $1;
+  `, [id]);
     const postResult = await db.query(`
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
              COUNT(post_favorites.user_id) AS favorites_count,
-             posts.image_url  -- 新增封面圖片 URL 欄位
+             posts.image_url,posts.views_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -97,7 +103,7 @@ exports.getPostsByCategory = async (categoryId) => {
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
              COUNT(post_favorites.user_id) AS favorites_count,
-             posts.image_url  -- 新增封面圖片 URL
+             posts.image_url,posts.views_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -144,7 +150,7 @@ exports.getPostsByUser = async (userId) => {
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
              COUNT(post_favorites.user_id) AS favorites_count,
-             posts.image_url  -- 新增封面圖片 URL
+             posts.image_url,posts.views_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -194,7 +200,7 @@ exports.getFullPostsWithComments = async () => {
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
              COUNT(post_favorites.user_id) AS favorites_count,
-             posts.image_url  -- 新增封面圖片 URL
+             posts.image_url,posts.views_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
