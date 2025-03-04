@@ -84,3 +84,30 @@ exports.deleteComment = async (req, res) => {
     res.status(500).json({ status: "error", message: "無法刪除留言" });
   }
 };
+
+exports.toggleCommentLike = async (req, res) => {
+  try {
+    const { comment_id } = req.params;
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ status: "error", message: "未授權，請登入" });
+    }
+
+    const result = await commentModel.toggleCommentLike(req.user.id, comment_id);
+    res.json({ status: "success", liked: result.liked });
+  } catch (error) {
+    console.error("按讚留言失敗:", error);
+    res.status(500).json({ status: "error", message: "無法按讚留言" });
+  }
+};
+
+exports.getCommentLikes = async (req, res) => {
+  try {
+    const { comment_id } = req.params;
+    const likes = await commentModel.getCommentLikes(comment_id);
+    res.json({ status: "success", data: likes });
+  } catch (error) {
+    console.error("無法獲取留言按讚名單:", error);
+    res.status(500).json({ status: "error", message: "無法獲取留言按讚名單" });
+  }
+};
+
