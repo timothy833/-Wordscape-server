@@ -12,10 +12,10 @@ const storage = multer.diskStorage({
         cb(null, uploadPath);
     },
     filename: function (req,file, cb){
-        let sanitizedFlidName = file.originalname.normalize("NFC")
+        let sanitizedFileName = file.originalname.normalize("NFC")
             .replace(/\s/g, "_") // 空格轉 `_`
             .replace(/[^\w.-]/g, ""); // 移除特殊字符 
-        cb(null, `${Date.now()}-${sanitizedFildName}`); // ✅ 確保唯一性
+        cb(null, `${Date.now()}-${sanitizedFileName}`); // ✅ 確保唯一性
     }
 })
 

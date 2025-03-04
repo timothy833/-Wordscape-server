@@ -11,6 +11,16 @@ const rateLimit = require("express-rate-limit"); //限制請求次數
 //3.建立Express應用
 const app = express();
 
+// ✅ 設定信任代理，避免 `express-rate-limit` IP 錯誤
+app.set('trust proxy', 1);
+
+// ✅ 印出請求 IP 來檢查
+app.use((req, res, next) => {
+  console.log("IP:", req.ip);
+  console.log("X-Forwarded-For:", req.headers["x-forwarded-for"]);
+  next();
+});
+
 
 // ✅ 忽略 `/favicon.ico`，避免 400 錯誤
 app.get("/favicon.ico", (req, res) => res.status(204).end());
