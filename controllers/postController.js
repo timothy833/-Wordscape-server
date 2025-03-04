@@ -18,25 +18,25 @@ const { s3 } = require("../config-s3");
 
 
 
- // **通用 R2 上傳函式（支援 Base64 & 檔案）**
-const uploadToR2 = async (file, folder) =>{
+// **通用 R2 上傳函式（支援 Base64 & 檔案）**
+const uploadToR2 = async (file, folder) => {
   try {
     let fileBuffer; // 先宣告變數
     let fileName;
 
-    if(typeof file === "string" && file.startsWith("data:image")) {
+    if (typeof file === "string" && file.startsWith("data:image")) {
       // Base64 圖片處理
-      const base64Data =  file.split(",")[1];
+      const base64Data = file.split(",")[1];
       fileBuffer = Buffer.from(base64Data, "base64");
       fileName = `${folder}/${Date.now()}.png`; // **確保唯一檔名**
-    } 
+    }
     else if (file.path) {
       //正常檔案上傳 ✅ 處理一般檔案上傳 避免 R2 亂碼
       fileBuffer = fs.readFileSync(file.path);
-      let sanitizedFileName = file.originalname.normalize("NFC") 
-            .replace(/\s/g, "_")  // 空格轉 `_`
-            .replace(/[^\w.-]/g, ""); // 過濾特殊字符
-      fileName = `${folder}/${Date.now()}-${sanitizedFileName}`; 
+      let sanitizedFileName = file.originalname.normalize("NFC")
+        .replace(/\s/g, "_")  // 空格轉 `_`
+        .replace(/[^\w.-]/g, ""); // 過濾特殊字符
+      fileName = `${folder}/${Date.now()}-${sanitizedFileName}`;
     }
     else {
       throw new Error("無效的圖片格式");
@@ -48,7 +48,7 @@ const uploadToR2 = async (file, folder) =>{
     //初始化  ✅ 設定上傳參數 **上傳到 R2**
     const uploadParams = {
       Bucket: process.env.R2_BUCKET_NAME,
-      Key: fileName,  
+      Key: fileName,
       Body: fileBuffer,
       ContentType: file.mimetype || "image/png",
     }
@@ -59,20 +59,20 @@ const uploadToR2 = async (file, folder) =>{
     await s3.send(command);
 
     console.log("✅ 圖片成功上傳到 R2");
-    
+
     // 上傳成功後刪除本地檔案
-   // ✅ 確保刪除本地檔案  
-   if (file.path && fs.existsSync(file.path)) {
-    fs.unlink(file.path, (err) => {
-      if (err) console.error("❌ 刪除本地檔案失敗:", err);
-      else console.log("✅ 本地檔案刪除成功:", file.path);
-    });
-  }
+    // ✅ 確保刪除本地檔案  
+    if (file.path && fs.existsSync(file.path)) {
+      fs.unlink(file.path, (err) => {
+        if (err) console.error("❌ 刪除本地檔案失敗:", err);
+        else console.log("✅ 本地檔案刪除成功:", file.path);
+      });
+    }
 
     // **本地 vs 雲端 儲存不同 URL**
     const resultUrl = process.env.NODE_ENV === "development"
-    ? await getSignedUrl(s3, new GetObjectCommand(uploadParams), { expiresIn: 604800 })
-    : `${process.env.CDN_BASE_URL}api/image?key=${encodeURIComponent(fileName)}`; // **確保 URL 解析  ✅ 修正 `resultUrl`，確保 `key` 被 `encodeURIComponent()`**
+      ? await getSignedUrl(s3, new GetObjectCommand(uploadParams), { expiresIn: 604800 })
+      : `${process.env.CDN_BASE_URL}api/image?key=${encodeURIComponent(fileName)}`; // **確保 URL 解析  ✅ 修正 `resultUrl`，確保 `key` 被 `encodeURIComponent()`**
 
     console.log("📌 返回的圖片 URL:", resultUrl);
     return resultUrl;
@@ -167,7 +167,7 @@ exports.getPosts = async (req, res) => {
   }
 };
 
- // **根據 ID 取得文章**
+// **根據 ID 取得文章**
 exports.getPostById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -226,8 +226,8 @@ exports.createPost = async (req, res) => {
 
     const { title, content, category_id, status, tags, image_url } = req.body;
 
-    if(!title || !content) {
-      return res.status(400).json({error: "標題與內容為必填"});
+    if (!title || !content) {
+      return res.status(400).json({ error: "標題與內容為必填" });
     }
 
 
@@ -238,7 +238,7 @@ exports.createPost = async (req, res) => {
       title,
       content, // 這裡已經是處理過的 HTML，內含 R2 圖片 URL
       status: status || 'draft',
-      image_url: image_url|| null // ✅ 存入轉換後的 URL
+      image_url: image_url || null // ✅ 存入轉換後的 URL
     };
 
     console.log("📌 正在新增文章"); // 🔴 **加上 log 檢查**
@@ -345,5 +345,35 @@ exports.getPostLikes = async (req, res) => {
     res.json({ status: "success", data: likes });
   } catch (error) {
     res.status(500).json({ status: "error", message: "無法查詢按讚數" });
+  }
+};
+
+
+exports.togglePostFavorite = async (req, res) => {
+  try {
+    const { post_id } = req.params;
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ status: "error", message: "未授權，請登入" });
+    }
+
+    const result = await postModel.togglePostFavorite(req.user.id, post_id);
+    res.json({ status: "success", favorited: result.favorited });
+  } catch (error) {
+    console.error("無法收藏/取消收藏文章:", error);
+    res.status(500).json({ status: "error", message: "無法收藏/取消收藏文章" });
+  }
+};
+
+exports.getUserFavorites = async (req, res) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ status: "error", message: "未授權，請登入" });
+    }
+
+    const favorites = await postModel.getUserFavorites(req.user.id);
+    res.json({ status: "success", data: favorites });
+  } catch (error) {
+    console.error("無法獲取收藏文章清單:", error);
+    res.status(500).json({ status: "error", message: "無法獲取收藏文章清單" });
   }
 };

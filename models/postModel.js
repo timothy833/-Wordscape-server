@@ -6,11 +6,13 @@ exports.getPosts = async () => {
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
+             COUNT(post_favorites.user_id) AS favorites_count,
              posts.image_url  -- 新增封面圖片 URL 欄位
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
       LEFT JOIN post_likes ON posts.id = post_likes.post_id
+       LEFT JOIN post_favorites ON posts.id = post_favorites.post_id
       GROUP BY posts.id, users.username, categories.id, categories.name;
     `);
 
@@ -48,11 +50,13 @@ exports.getPostById = async (id) => {
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
+             COUNT(post_favorites.user_id) AS favorites_count,
              posts.image_url  -- 新增封面圖片 URL 欄位
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
       LEFT JOIN post_likes ON posts.id = post_likes.post_id
+       LEFT JOIN post_favorites ON posts.id = post_favorites.post_id
       WHERE posts.id = $1
       GROUP BY posts.id, users.username, categories.id, categories.name;
     `, [id]);
@@ -71,14 +75,14 @@ exports.getPostById = async (id) => {
     post.tags = tagResult.rows;
 
     // 取得 `liked_users`
-    const likedUsersResult = await db.query(`
-      SELECT users.id, users.username
-      FROM post_likes
-      JOIN users ON post_likes.user_id = users.id
-      WHERE post_likes.post_id = $1;
-    `, [id]);
+    // const likedUsersResult = await db.query(`
+    //   SELECT users.id, users.username
+    //   FROM post_likes
+    //   JOIN users ON post_likes.user_id = users.id
+    //   WHERE post_likes.post_id = $1;
+    // `, [id]);
 
-    post.liked_users = likedUsersResult.rows;
+    // post.liked_users = likedUsersResult.rows;
 
     return post;
   } catch (error) {
@@ -92,11 +96,13 @@ exports.getPostsByCategory = async (categoryId) => {
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
+             COUNT(post_favorites.user_id) AS favorites_count,
              posts.image_url  -- 新增封面圖片 URL
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
       LEFT JOIN post_likes ON posts.id = post_likes.post_id
+       LEFT JOIN post_favorites ON posts.id = post_favorites.post_id
       WHERE posts.category_id = $1
       GROUP BY posts.id, users.username, categories.id, categories.name;
     `, [categoryId]);
@@ -137,11 +143,13 @@ exports.getPostsByUser = async (userId) => {
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
+             COUNT(post_favorites.user_id) AS favorites_count,
              posts.image_url  -- 新增封面圖片 URL
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
       LEFT JOIN post_likes ON posts.id = post_likes.post_id
+       LEFT JOIN post_favorites ON posts.id = post_favorites.post_id
       WHERE posts.user_id = $1
       GROUP BY posts.id, users.username, categories.id, categories.name;
     `, [userId]);
@@ -185,11 +193,13 @@ exports.getFullPostsWithComments = async () => {
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
+             COUNT(post_favorites.user_id) AS favorites_count,
              posts.image_url  -- 新增封面圖片 URL
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
       LEFT JOIN post_likes ON posts.id = post_likes.post_id
+       LEFT JOIN post_favorites ON posts.id = post_favorites.post_id
       GROUP BY posts.id, users.username, categories.id, categories.name;
     `);
     const posts = postResult.rows;
@@ -417,6 +427,73 @@ exports.getPostLikes = async (post_id) => {
           JOIN users ON post_likes.user_id = users.id
           WHERE post_likes.post_id = $1
       `, [post_id]);
+
+    return result.rows;
+  } catch (error) {
+    throw error;
+  }
+};
+
+
+exports.togglePostFavorite = async (user_id, post_id) => {
+  try {
+    const checkResult = await db.query(
+      `SELECT * FROM post_favorites WHERE user_id = $1 AND post_id = $2;`,
+      [user_id, post_id]
+    );
+
+    if (checkResult.rows.length > 0) {
+      await db.query(`DELETE FROM post_favorites WHERE user_id = $1 AND post_id = $2;`,
+        [user_id, post_id]);
+      return { favorited: false };
+    } else {
+      await db.query(
+        `INSERT INTO post_favorites (user_id, post_id, created_at) VALUES ($1, $2, NOW());`,
+        [user_id, post_id]
+      );
+      return { favorited: true };
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+// exports.getUserFavorites = async (user_id) => {
+//   try {
+//     const result = await db.query(`
+//           SELECT posts.*, users.username AS author_name
+//           FROM post_favorites
+//           JOIN posts ON post_favorites.post_id = posts.id
+//           JOIN users ON posts.user_id = users.id
+//           WHERE post_favorites.user_id = $1
+//           ORDER BY post_favorites.created_at DESC;
+//       `, [user_id]);
+//     return result.rows;
+//   } catch (error) {
+//     throw error;
+//   }
+// };
+
+exports.getUserFavorites = async (user_id) => {
+  try {
+    if (!user_id || !/^[0-9a-fA-F-]{36}$/.test(user_id)) {
+      throw new Error(`❌ user_id 格式錯誤: ${user_id}`);
+    }
+
+    const result = await db.query(`
+          SELECT posts.*, users.username AS author_name,
+                 COALESCE(fav_count.count, 0) AS favorites_count
+          FROM post_favorites
+          JOIN posts ON post_favorites.post_id = posts.id
+          JOIN users ON posts.user_id = users.id
+          LEFT JOIN (
+              SELECT post_id, COUNT(user_id) AS count
+              FROM post_favorites
+              GROUP BY post_id
+          ) AS fav_count ON posts.id = fav_count.post_id
+          WHERE post_favorites.user_id = $1
+          ORDER BY post_favorites.created_at DESC;
+      `, [user_id]);
 
     return result.rows;
   } catch (error) {
