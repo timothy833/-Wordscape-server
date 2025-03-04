@@ -201,7 +201,9 @@ exports.getFullPostsWithComments = async () => {
 
     // 查詢這些文章的留言（包含巢狀留言）
     const commentResult = await db.query(`
-      SELECT comments.*, users.username AS user_name
+      SELECT comments.*, 
+      users.username AS user_name,
+      (SELECT COUNT(*) FROM comment_likes WHERE comment_likes.comment_id = comments.id) AS likes_count
       FROM comments
       JOIN users ON comments.user_id = users.id
       WHERE comments.post_id = ANY($1)
