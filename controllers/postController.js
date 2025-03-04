@@ -19,7 +19,7 @@ const { s3 } = require("../config-s3");
 
 
  // **通用 R2 上傳函式（支援 Base64 & 檔案）**
-const uploadToR2 = async (file, folder) =>{
+exports.uploadToR2 = async (file, folder) =>{
   try {
     let fileBuffer; // 先宣告變數
     let fileName;
@@ -103,14 +103,14 @@ const processBatchUpload = async (images, folder) => {
 // **封面圖片上傳 API**
 exports.uploadCoverImage = async (req, res) => {
   try {
-    const file = req.file || req.body.file;
+    const file = req.file || req.body.file; //req.body.file .file決定前端json物件要設定的key, 但是用form/data格式傳的是用req.file 這個是multer建立傳遞檔案時在req中的屬性不可動
 
     // ✅ 如果是外部圖片，直接返回 URL，不上傳
     if (typeof file === "string" && file.startsWith("http")) {
       return res.json({ url: file });
     }
 
-    const imageUrl = await uploadToR2(file, "cover_images");
+    const imageUrl = await uploadToR2(file, "cover_images"); //(檔案, 存放資料夾名稱)
     res.json({ url: imageUrl });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -122,7 +122,7 @@ exports.uploadCoverImage = async (req, res) => {
 // **文章內圖片上傳 API**
 exports.uploadContentImage = async (req, res) => {
   try {
-    const files = req.body.files; // Base64 陣列
+    const files = req.body.files; // Base64 陣列/定義檔名為files
     if (!files || !Array.isArray(files) || files.length === 0) {
       return res.status(400).json({ error: "缺少圖片數據" });
     }

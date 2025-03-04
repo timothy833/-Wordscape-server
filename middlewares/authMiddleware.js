@@ -1,10 +1,16 @@
 const jwt = require('jsonwebtoken');
+const { invalidTokens } = require('../controllers/userController');
 
 module.exports = (req, res, next) => {
   const tokenHeader = req.headers['authorization'];
   if (!tokenHeader || !tokenHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: '未授權，請提供有效的 Bearer token' });
   }
+
+  if(invalidTokens.has(token)) {
+    return res.status(401).json({error:'Token無效 已登出'});
+  }
+
   const token = tokenHeader.split(' ')[1];
 
   if (!token) {
