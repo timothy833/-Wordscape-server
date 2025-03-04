@@ -4,6 +4,8 @@ const bcrypt = require('bcrypt');
 const nodemailer =  require('nodemailer');
 require('dotenv').config(); // 確保 .env 變數被讀取
 
+const { uploadToR2 } = require("../controllers/postController");
+
 // 取得所有使用者
 exports.getUsers = async ( req, res, next )=> {
     try {
@@ -60,23 +62,82 @@ exports.login = async (req, res, next) => {
         const isMatch = await bcrypt.compare(password, user.password);
 
         if (!isMatch) return res.status(401).json({ error: '密碼錯誤' });
+
         //產生JWT token，設定有效期，例如1小時
         const token = jwt.sign({id: user.id, username: user.username}, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token });
+
+        res.json({ 
+            token, 
+            id: user.id, // ✅ 回傳 UUID，前端可以存起來
+            username:user.username // ✅ 回傳用戶名
+        });
     } catch (error) {
         next(error);
     }
 }
 
+
+// ✅ 登出 API（讓 Token 立即失效）
+const invalidTokens = new Set(); // ✅ 存登出 Token
+exports.invalidTokens = invalidTokens; // ✅ 這樣不會覆蓋掉其他 exports
+
+
+exports.logout= async (req, res)=>{
+    try {
+        const token = req.headers['Authorization']?.replace('Bearer', "");
+        if (!token) return res.status(400).json({error: "沒有提供 Token"});
+
+        // ✅ 先嘗試解碼 JWT，確保它是有效的
+        const decoded = jwt.decode(token);
+        if(!decoded || !decoded.exp) {
+            return res.status(400).json({error: "無效的 Token"});
+        }
+
+        invalidTokens.add(token); // ✅ 確保是有效 Token 才加入黑名單
+
+        // ✅ 設定自動清除機制，等 JWT 自然過期後刪除
+        setTimeout(() => {
+            invalidTokens.delete(token);
+        }, (decoded.exp * 1000 - Date.now()));
+
+
+        res.json({message: '成功登出'});
+    } catch (error) {
+        res.status(500).json({error: "登出失敗"});
+    }
+}
+
+
+
+
 // 更新使用者資訊（支援更改密碼）
 exports.updateUser = async(req, res, next) => { 
     try {
-        const updateFields = {};
+        const { id } = req.params;
         const { username, email, bio, profile_picture, password } = req.body; 
+        const file = req.file //✅ Multer 上傳的檔案
 
+        //先檢查使用者是否存在
+        const existingUser = await userModel.getUserById(id);
+        if(!existingUser){
+            return res.status(404).json({error: '使用者不存在'});
+        }
+
+        //構建要更新的欄位
+        const updateFields= {};
         if (username) updateFields.username = username;
         if (email) updateFields.email = email;
         if (bio) updateFields.bio = bio;
+
+         // ✅ 如果是外部圖片 URL，不上傳 R2，直接使用
+        if(typeof profile_picture === "string" && profile_picture.startsWith("http")){
+            updateFields.profile_picture = profile_picture;
+        }
+         // ✅ 如果是上傳圖片，則存到 R2
+        else {
+            updateFields.profile_picture = await uploadToR2(file ,"profile_picture");
+        }
+
         if (profile_picture) updateFields.profile_picture = profile_picture;
 
         // 如果有新密碼先進行加密
@@ -85,7 +146,7 @@ exports.updateUser = async(req, res, next) => {
         }
         const updateUser = await userModel.updateUser(req.params.id, updateFields);
 
-        res.json(updateUser);
+        res.json({ message:'更新使用者成功',  user: updateUser});
     } catch (error) {
         console.error("Controller Error:", error.message);
         next(error);
@@ -140,7 +201,7 @@ exports.forgotPassword = async (req, res, next) => {
     } catch (error) {
         next(error);
     }
-}
+}   
 
 //重設密碼(使用Token）
 exports.resetPassword = async (req, res, next) => {
