@@ -4,6 +4,7 @@ exports.getAllComments = async () => {
   const result = await db.query(`
         SELECT comments.*, 
                users.username AS user_name,
+               users.profile_picture,
                (SELECT COUNT(*) FROM comment_likes WHERE comment_likes.comment_id = comments.id) AS likes_count
         FROM comments
         JOIN users ON comments.user_id = users.id
@@ -16,6 +17,7 @@ exports.getCommentsByPostId = async (post_id) => {
   const result = await db.query(`
     SELECT comments.*, 
            users.username AS user_name,
+           users.profile_picture,
            (SELECT COUNT(*) FROM comment_likes WHERE comment_likes.comment_id = comments.id) AS likes_count
     FROM comments
     JOIN users ON comments.user_id = users.id
@@ -42,6 +44,7 @@ exports.getCommentsWithReplies = async (post_id) => {
   try {
     const result = await db.query(`
           SELECT comments.*, users.username AS user_name,
+          users.profile_picture,
            (SELECT COUNT(*) FROM comment_likes WHERE comment_likes.comment_id = comments.id) AS likes_count
           FROM comments
           JOIN users ON comments.user_id = users.id

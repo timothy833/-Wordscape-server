@@ -213,6 +213,7 @@ exports.getFullPostsWithComments = async () => {
     const commentResult = await db.query(`
       SELECT comments.*, 
       users.username AS user_name,
+      users.profile_picture,
       (SELECT COUNT(*) FROM comment_likes WHERE comment_likes.comment_id = comments.id) AS likes_count
       FROM comments
       JOIN users ON comments.user_id = users.id
