@@ -15,7 +15,7 @@ const storage = multer.diskStorage({
         let sanitizedFlidName = file.originalname.normalize("NFC")
             .replace(/\s/g, "_") // 空格轉 `_`
             .replace(/[^\w.-]/g, ""); // 移除特殊字符 
-        cb(null, `${Date.now()}-${sanitizedFileName}`); // ✅ 確保唯一性
+        cb(null, `${Date.now()}-${sanitizedFildName}`); // ✅ 確保唯一性
     }
 })
 
@@ -23,3 +23,6 @@ const upload = multer({
     storage,
     limits: { fileSize: 100*1024*1024},
 });
+
+// ✅ 正確導出 `upload`
+module.exports = upload;

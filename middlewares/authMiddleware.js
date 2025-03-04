@@ -7,15 +7,17 @@ module.exports = (req, res, next) => {
     return res.status(401).json({ error: '未授權，請提供有效的 Bearer token' });
   }
 
-  if(invalidTokens.has(token)) {
-    return res.status(401).json({error:'Token無效 已登出'});
-  }
 
   const token = tokenHeader.split(' ')[1];
 
   if (!token) {
     return res.status(401).json({ error: '未授權，請提供token' });
   }
+
+  if(invalidTokens.has(token)) {
+    return res.status(401).json({error:'Token無效 已登出'});
+  }
+
   //可加token驗證邏輯(例如：jwt.verify())
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

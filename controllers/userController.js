@@ -79,12 +79,12 @@ exports.login = async (req, res, next) => {
 
 // ✅ 登出 API（讓 Token 立即失效）
 const invalidTokens = new Set(); // ✅ 存登出 Token
-module.exports = { invalidTokens };
+exports.invalidTokens = invalidTokens; // ✅ 這樣不會覆蓋掉其他 exports
 
 
-exports.logout= async (req, res){
+exports.logout= async (req, res)=>{
     try {
-        const token = req.headers('Authorization')?.replace('Bearer', "");
+        const token = req.headers['Authorization']?.replace('Bearer', "");
         if (!token) return res.status(400).json({error: "沒有提供 Token"});
 
         // ✅ 先嘗試解碼 JWT，確保它是有效的
@@ -118,7 +118,7 @@ exports.updateUser = async(req, res, next) => {
         const file = req.file //✅ Multer 上傳的檔案
 
         //先檢查使用者是否存在
-        const existingUser = await userModel.getUserBy(id);
+        const existingUser = await userModel.getUserById(id);
         if(!existingUser){
             return res.status(404).json({error: '使用者不存在'});
         }
