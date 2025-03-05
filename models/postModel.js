@@ -9,7 +9,7 @@ exports.getPosts = async (page = 1, limit= 10) => {
              users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
-             COUNT(post_favorites.user_id) AS favorites_count,
+             COUNT(post_favorites.user_id) AS favorites_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -60,7 +60,7 @@ exports.getPostById = async (id) => {
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
-             COUNT(post_favorites.user_id) AS favorites_count,
+             COUNT(post_favorites.user_id) AS favorites_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -105,7 +105,7 @@ exports.getPostsByCategory = async (categoryId) => {
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
-             COUNT(post_favorites.user_id) AS favorites_count,
+             COUNT(post_favorites.user_id) AS favorites_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -151,7 +151,7 @@ exports.getPostsByUser = async (userId) => {
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
-             COUNT(post_favorites.user_id) AS favorites_count,
+             COUNT(post_favorites.user_id) AS favorites_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -200,7 +200,7 @@ exports.getFullPostsWithComments = async () => {
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
-             COUNT(post_favorites.user_id) AS favorites_count,
+             COUNT(post_favorites.user_id) AS favorites_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
