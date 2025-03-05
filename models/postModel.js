@@ -193,8 +193,10 @@ exports.getPostsByUser = async (userId) => {
 
 
 
-exports.getFullPostsWithComments = async () => {
+exports.getFullPostsWithComments = async (page = 1, limit= 10) => {
   try {
+    const offset = (page -1) * limit;
+
     // 取得所有文章資訊
     const postResult = await db.query(`
       SELECT posts.*, users.username AS author_name, 
@@ -206,8 +208,11 @@ exports.getFullPostsWithComments = async () => {
       LEFT JOIN categories ON posts.category_id = categories.id
       LEFT JOIN post_likes ON posts.id = post_likes.post_id
       LEFT JOIN post_favorites ON posts.id = post_favorites.post_id
-      GROUP BY posts.id, users.username, categories.id, categories.name;
-    `);
+      GROUP BY posts.id, users.username, categories.id, categories.name
+      ORDER BY posts.created_at DESC
+      LIMIT $1 OFFSET $2;
+    `, [limit, offset]);
+    
     const posts = postResult.rows;
 
     if (posts.length === 0) return posts;

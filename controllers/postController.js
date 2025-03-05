@@ -211,7 +211,10 @@ exports.getPostsByUser = async (req, res) => {
 
 exports.getFullPostsWithComments = async (req, res) => {
   try {
-    const posts = await postModel.getFullPostsWithComments();
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = 10; //每頁最多顯示 10 筆資料
+
+    const posts = await postModel.getFullPostsWithComments(page, limit);
     res.json({ status: "success", data: posts });
   } catch (error) {
     console.error("無法取得完整文章列表:", error);
