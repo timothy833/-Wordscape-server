@@ -15,9 +15,9 @@ exports.getPosts = async (page = 1, limit= 10) => {
       LEFT JOIN categories ON posts.category_id = categories.id
       LEFT JOIN post_likes ON posts.id = post_likes.post_id
       LEFT JOIN post_favorites ON posts.id = post_favorites.post_id
-      GROUP BY posts.id, users.username, categories.id, categories.name;
+      GROUP BY posts.id, users.username, categories.id, categories.name
       ORDER BY posts.created_at DESC
-      LIMIT $1 OFFSET $2
+      LIMIT $1 OFFSET $2;
     `, [limit, offset]);
 
     const posts = postResult.rows;
@@ -432,7 +432,7 @@ exports.getPostLikes = async (post_id) => {
           SELECT users.id, users.username
           FROM post_likes
           JOIN users ON post_likes.user_id = users.id
-          WHERE post_likes.post_id = $1
+          WHERE post_likes.post_id = $1;
       `, [post_id]);
 
     return result.rows;
