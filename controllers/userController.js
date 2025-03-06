@@ -114,7 +114,7 @@ exports.logout = async (req, res) => {
 exports.updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { username, email, bio, profile_picture, password } = req.body;
+    const { username, email, bio, profile_picture, password, phone, gender, birthday } = req.body;
     const file = req.file //✅ Multer 上傳的檔案
 
     //先檢查使用者是否存在
@@ -144,6 +144,11 @@ exports.updateUser = async (req, res, next) => {
     if (password) {
       updateFields.password = await bcrypt.hash(password, 10);
     }
+
+    if (phone !== undefined) updateFields.phone = phone;
+    if (gender !== undefined) updateFields.gender = gender;
+    if (birthday !== undefined) updateFields.birthday = birthday;
+
     const updateUser = await userModel.updateUser(req.params.id, updateFields);
 
     res.json({ message: '更新使用者成功', user: updateUser });
