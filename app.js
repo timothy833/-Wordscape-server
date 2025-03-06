@@ -40,8 +40,8 @@ app.use(cors({
   credentials: false, // 如果需要傳遞 Cookie 或身份驗證資訊 ✅ 關閉 credentials（不再讓瀏覽器自動攜帶 Cookie）
   maxAge: 86400,// ✅ CORS 設定快取 1 天
   allowedHeaders: ["Content-Type", "Authorization"],  // ✅ 允許這些標頭
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-}))
+  methods: ["GET", "POST", "PUT", "DELETE","PATCH" ,"OPTIONS"]
+}));
 
 app.options("*", cors()); // ✅ 允許所有路由的 OPTIONS 預檢請求
 
