@@ -476,7 +476,8 @@ exports.getUserFavorites = async (user_id) => {
     const result = await db.query(`
           SELECT posts.*, users.username AS author_name,
           COALESCE(likes_count.count, 0) AS likes_count,
-                 COALESCE(fav_count.count, 0) AS favorites_count
+          COALESCE(fav_count.count, 0) AS favorites_count,
+           COALESCE(comments_count.count, 0) AS comments_count
           FROM post_favorites
           JOIN posts ON post_favorites.post_id = posts.id
           JOIN users ON posts.user_id = users.id
@@ -490,6 +491,11 @@ exports.getUserFavorites = async (user_id) => {
               FROM post_favorites
               GROUP BY post_id
           ) AS fav_count ON posts.id = fav_count.post_id
+           LEFT JOIN ( 
+          SELECT post_id, COUNT(id) AS count
+          FROM comments
+          GROUP BY post_id
+      ) AS comments_count ON posts.id = comments_count.post_id
           WHERE post_favorites.user_id = $1
           ORDER BY post_favorites.created_at DESC;
       `, [user_id]);
