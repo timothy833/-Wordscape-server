@@ -82,6 +82,7 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const tagRoutes = require('./routes/tagRoutes');
+const bannerRoutes = require('./routes/bannerRoutes');
 // const postTagRoutes = require('./routes/postTagRoutes');
 
 
@@ -94,6 +95,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/tags', tagRoutes);
+app.use('/api/banners', bannerRoutes);
 // app.use('/api/post-tags', postTagRoutes);
 
 // 9. 測試路由：確認伺服器是否運作正常
