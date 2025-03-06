@@ -159,7 +159,10 @@ exports.uploadContentImage = async (req, res) => {
 // **取得所有文章**
 exports.getPosts = async (req, res) => {
   try {
-    const posts = await postModel.getPosts();
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = 10; //每頁最多顯示 10 筆資料
+
+    const posts = await postModel.getPosts(page, limit);
     res.json({ status: "success", data: posts });
   } catch (error) {
     console.error("無法取得文章列表:", error);
@@ -208,7 +211,10 @@ exports.getPostsByUser = async (req, res) => {
 
 exports.getFullPostsWithComments = async (req, res) => {
   try {
-    const posts = await postModel.getFullPostsWithComments();
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = 10; //每頁最多顯示 10 筆資料
+
+    const posts = await postModel.getFullPostsWithComments(page, limit);
     res.json({ status: "success", data: posts });
   } catch (error) {
     console.error("無法取得完整文章列表:", error);
@@ -224,7 +230,7 @@ exports.createPost = async (req, res) => {
       return res.status(401).json({ status: "error", message: "未授權，請登入" });
     }
 
-    const { title, content, category_id, status, tags, image_url } = req.body;
+    const { title, content, description, category_id, status, tags, image_url } = req.body;
 
     if (!title || !content) {
       return res.status(400).json({ error: "標題與內容為必填" });
@@ -237,6 +243,7 @@ exports.createPost = async (req, res) => {
       category_id,
       title,
       content, // 這裡已經是處理過的 HTML，內含 R2 圖片 URL
+      description, // ✅ 新增 `description`
       status: status || 'draft',
       image_url: image_url || null // ✅ 存入轉換後的 URL
     };

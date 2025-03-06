@@ -84,7 +84,7 @@ exports.invalidTokens = invalidTokens; // ✅ 這樣不會覆蓋掉其他 export
 
 exports.logout= async (req, res)=>{
     try {
-        const token = req.headers['Authorization']?.replace('Bearer', "");
+        const token = req.headers['authorization']?.replace('Bearer', "").trim(); //string.replace("要替換的字串", "新的字串");
         if (!token) return res.status(400).json({error: "沒有提供 Token"});
 
         // ✅ 先嘗試解碼 JWT，確保它是有效的

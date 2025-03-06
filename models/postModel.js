@@ -1,20 +1,24 @@
 const db = require('../db');
 
-exports.getPosts = async () => {
+exports.getPosts = async (page = 1, limit = 10) => {
   try {
+    const offset = (page - 1) * limit;
+
     const postResult = await db.query(`
-      SELECT posts.*, users.username AS author_name, 
+      SELECT posts.*, 
+             users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
-             COUNT(post_favorites.user_id) AS favorites_count,
-             posts.image_url,posts.views_count
+             COUNT(post_favorites.user_id) AS favorites_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
       LEFT JOIN post_likes ON posts.id = post_likes.post_id
-       LEFT JOIN post_favorites ON posts.id = post_favorites.post_id
-      GROUP BY posts.id, users.username, categories.id, categories.name;
-    `);
+      LEFT JOIN post_favorites ON posts.id = post_favorites.post_id
+      GROUP BY posts.id, users.username, categories.id, categories.name
+      ORDER BY posts.created_at DESC
+      LIMIT $1 OFFSET $2;
+    `, [limit, offset]);
 
     const posts = postResult.rows;
 
@@ -56,8 +60,7 @@ exports.getPostById = async (id) => {
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
-             COUNT(post_favorites.user_id) AS favorites_count,
-             posts.image_url,posts.views_count
+             COUNT(post_favorites.user_id) AS favorites_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -102,8 +105,7 @@ exports.getPostsByCategory = async (categoryId) => {
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
-             COUNT(post_favorites.user_id) AS favorites_count,
-             posts.image_url,posts.views_count
+             COUNT(post_favorites.user_id) AS favorites_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -149,13 +151,12 @@ exports.getPostsByUser = async (userId) => {
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
-             COUNT(post_favorites.user_id) AS favorites_count,
-             posts.image_url,posts.views_count
+             COUNT(post_favorites.user_id) AS favorites_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
       LEFT JOIN post_likes ON posts.id = post_likes.post_id
-       LEFT JOIN post_favorites ON posts.id = post_favorites.post_id
+      LEFT JOIN post_favorites ON posts.id = post_favorites.post_id
       WHERE posts.user_id = $1
       GROUP BY posts.id, users.username, categories.id, categories.name;
     `, [userId]);
@@ -192,22 +193,26 @@ exports.getPostsByUser = async (userId) => {
 
 
 
-exports.getFullPostsWithComments = async () => {
+exports.getFullPostsWithComments = async (page = 1, limit = 10) => {
   try {
+    const offset = (page - 1) * limit;
+
     // 取得所有文章資訊
     const postResult = await db.query(`
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
              COUNT(post_likes.user_id) AS likes_count,
-             COUNT(post_favorites.user_id) AS favorites_count,
-             posts.image_url,posts.views_count
+             COUNT(post_favorites.user_id) AS favorites_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
       LEFT JOIN post_likes ON posts.id = post_likes.post_id
-       LEFT JOIN post_favorites ON posts.id = post_favorites.post_id
-      GROUP BY posts.id, users.username, categories.id, categories.name;
-    `);
+      LEFT JOIN post_favorites ON posts.id = post_favorites.post_id
+      GROUP BY posts.id, users.username, categories.id, categories.name
+      ORDER BY posts.created_at DESC
+      LIMIT $1 OFFSET $2;
+    `, [limit, offset]);
+
     const posts = postResult.rows;
 
     if (posts.length === 0) return posts;
@@ -276,10 +281,10 @@ exports.getFullPostsWithComments = async () => {
 exports.createPost = async (postData, tagNames) => {
   try {
     const postResult = await db.query(`
-          INSERT INTO posts (id, user_id, category_id, title, content, status, image_url)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          INSERT INTO posts (id, user_id, category_id, title, content, description, status, image_url)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           RETURNING *;
-      `, [postData.id, postData.user_id, postData.category_id, postData.title, postData.content, postData.status, postData.image_url]);
+      `, [postData.id, postData.user_id, postData.category_id, postData.title, postData.content, postData.description, postData.status, postData.image_url]);
 
     const post = postResult.rows[0];
 
@@ -432,7 +437,7 @@ exports.getPostLikes = async (post_id) => {
           SELECT users.id, users.username
           FROM post_likes
           JOIN users ON post_likes.user_id = users.id
-          WHERE post_likes.post_id = $1
+          WHERE post_likes.post_id = $1;
       `, [post_id]);
 
     return result.rows;
