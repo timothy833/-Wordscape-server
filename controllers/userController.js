@@ -134,11 +134,10 @@ exports.updateUser = async (req, res, next) => {
       updateFields.profile_picture = profile_picture;
     }
     // ✅ 如果是上傳圖片，則存到 R2
-    else {
+    else if (file) {
       updateFields.profile_picture = await uploadToR2(file, "profile_picture");
     }
 
-    if (profile_picture) updateFields.profile_picture = profile_picture;
 
     // 如果有新密碼先進行加密
     if (password) {
