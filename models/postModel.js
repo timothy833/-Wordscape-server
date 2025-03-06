@@ -1,8 +1,8 @@
 const db = require('../db');
 
-exports.getPosts = async (page = 1, limit= 10) => {
+exports.getPosts = async (page = 1, limit = 10) => {
   try {
-    const offset = (page -1) * limit;
+    const offset = (page - 1) * limit;
 
     const postResult = await db.query(`
       SELECT posts.*, 
@@ -193,9 +193,9 @@ exports.getPostsByUser = async (userId) => {
 
 
 
-exports.getFullPostsWithComments = async (page = 1, limit= 10) => {
+exports.getFullPostsWithComments = async (page = 1, limit = 10) => {
   try {
-    const offset = (page -1) * limit;
+    const offset = (page - 1) * limit;
 
     // 取得所有文章資訊
     const postResult = await db.query(`
@@ -212,7 +212,7 @@ exports.getFullPostsWithComments = async (page = 1, limit= 10) => {
       ORDER BY posts.created_at DESC
       LIMIT $1 OFFSET $2;
     `, [limit, offset]);
-    
+
     const posts = postResult.rows;
 
     if (posts.length === 0) return posts;
@@ -470,39 +470,32 @@ exports.togglePostFavorite = async (user_id, post_id) => {
   }
 };
 
-// exports.getUserFavorites = async (user_id) => {
-//   try {
-//     const result = await db.query(`
-//           SELECT posts.*, users.username AS author_name
-//           FROM post_favorites
-//           JOIN posts ON post_favorites.post_id = posts.id
-//           JOIN users ON posts.user_id = users.id
-//           WHERE post_favorites.user_id = $1
-//           ORDER BY post_favorites.created_at DESC;
-//       `, [user_id]);
-//     return result.rows;
-//   } catch (error) {
-//     throw error;
-//   }
-// };
 
 exports.getUserFavorites = async (user_id) => {
   try {
-    if (!user_id || !/^[0-9a-fA-F-]{36}$/.test(user_id)) {
-      throw new Error(`❌ user_id 格式錯誤: ${user_id}`);
-    }
-
     const result = await db.query(`
           SELECT posts.*, users.username AS author_name,
-             COALESCE(fav_count.count, 0) AS favorites_count
+          COALESCE(likes_count.count, 0) AS likes_count,
+          COALESCE(fav_count.count, 0) AS favorites_count,
+           COALESCE(comments_count.count, 0) AS comments_count
           FROM post_favorites
           JOIN posts ON post_favorites.post_id = posts.id
           JOIN users ON posts.user_id = users.id
+           LEFT JOIN (
+          SELECT post_id, COUNT(user_id) AS count
+          FROM post_likes
+          GROUP BY post_id
+      ) AS likes_count ON posts.id = likes_count.post_id
           LEFT JOIN (
               SELECT post_id, COUNT(user_id) AS count
               FROM post_favorites
               GROUP BY post_id
           ) AS fav_count ON posts.id = fav_count.post_id
+           LEFT JOIN ( 
+          SELECT post_id, COUNT(id) AS count
+          FROM comments
+          GROUP BY post_id
+      ) AS comments_count ON posts.id = comments_count.post_id
           WHERE post_favorites.user_id = $1
           ORDER BY post_favorites.created_at DESC;
       `, [user_id]);
