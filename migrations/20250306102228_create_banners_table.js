@@ -9,7 +9,7 @@ exports.up = function(knex) {
         table.string('title').notNullable();
         table.string('subtitle');
         table.string('image_url').notNullable();
-        table.timestamps(true, true);
+        table.timestamps(true, true);  // ✅ 這行會自動加入 `created_at` 和 `updated_at`
     });
   
 };
