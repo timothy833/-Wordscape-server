@@ -8,8 +8,8 @@ exports.getPosts = async (page = 1, limit = 10) => {
       SELECT posts.*, 
              users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
-             COUNT(post_likes.user_id) AS likes_count,
-             COUNT(post_favorites.user_id) AS favorites_count
+             COUNT(DISTINCT post_likes.user_id) AS likes_count,
+             COUNT(DISTINCT post_favorites.user_id) AS favorites_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -59,8 +59,8 @@ exports.getPostById = async (id) => {
     const postResult = await db.query(`
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
-             COUNT(post_likes.user_id) AS likes_count,
-             COUNT(post_favorites.user_id) AS favorites_count
+             COUNT(DISTINCT post_likes.user_id) AS likes_count,
+             COUNT(DISTINCT post_favorites.user_id) AS favorites_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -104,8 +104,8 @@ exports.getPostsByCategory = async (categoryId) => {
     const postResult = await db.query(`
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
-             COUNT(post_likes.user_id) AS likes_count,
-             COUNT(post_favorites.user_id) AS favorites_count
+             COUNT(DISTINCT post_likes.user_id) AS likes_count,
+             COUNT(DISTINCT post_favorites.user_id) AS favorites_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -150,8 +150,8 @@ exports.getPostsByUser = async (userId) => {
     const postResult = await db.query(`
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
-             COUNT(post_likes.user_id) AS likes_count,
-             COUNT(post_favorites.user_id) AS favorites_count
+             COUNT(DISTINCT post_likes.user_id) AS likes_count,
+             COUNT(DISTINCT post_favorites.user_id) AS favorites_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -201,8 +201,8 @@ exports.getFullPostsWithComments = async (page = 1, limit = 10) => {
     const postResult = await db.query(`
       SELECT posts.*, users.username AS author_name, 
              categories.id AS category_id, categories.name AS category_name,
-             COUNT(post_likes.user_id) AS likes_count,
-             COUNT(post_favorites.user_id) AS favorites_count
+             COUNT(DISTINCT post_likes.user_id) AS likes_count,
+             COUNT(DISTINCT post_favorites.user_id) AS favorites_count
       FROM posts
       JOIN users ON posts.user_id = users.id
       LEFT JOIN categories ON posts.category_id = categories.id
@@ -422,7 +422,7 @@ exports.togglePostLike = async (userId, postId) => {
       await db.query(`DELETE FROM post_likes WHERE user_id = $1 AND post_id = $2;`, [userId, postId]);
       return { liked: false };
     } else {
-      await db.query(`INSERT INTO post_likes (user_id, post_id) VALUES ($1, $2);`, [userId, postId]);
+      await db.query(`INSERT INTO post_likes (user_id, post_id) VALUES ($1, $2)  ON CONFLICT (user_id, post_id) DO NOTHING`, [userId, postId]);
       return { liked: true };
     }
   } catch (error) {
