@@ -5,7 +5,7 @@ exports.getAllComments = async () => {
         SELECT comments.*, 
                users.username AS user_name,
                users.profile_picture,
-               (SELECT COUNT(*) FROM comment_likes WHERE comment_likes.comment_id = comments.id) AS likes_count
+               (SELECT COUNT(DISTINCT comment_likes.user_id) FROM comment_likes WHERE comment_likes.comment_id = comments.id) AS likes_count
         FROM comments
         JOIN users ON comments.user_id = users.id
         ORDER BY comments.created_at DESC;
@@ -18,7 +18,7 @@ exports.getCommentsByPostId = async (post_id) => {
     SELECT comments.*, 
            users.username AS user_name,
            users.profile_picture,
-           (SELECT COUNT(*) FROM comment_likes WHERE comment_likes.comment_id = comments.id) AS likes_count
+           (SELECT COUNT(DISTINCT comment_likes.user_id) FROM comment_likes WHERE comment_likes.comment_id = comments.id) AS likes_count
     FROM comments
     JOIN users ON comments.user_id = users.id
     WHERE comments.post_id = $1
@@ -45,7 +45,7 @@ exports.getCommentsWithReplies = async (post_id) => {
     const result = await db.query(`
           SELECT comments.*, users.username AS user_name,
           users.profile_picture,
-           (SELECT COUNT(*) FROM comment_likes WHERE comment_likes.comment_id = comments.id) AS likes_count
+           (SELECT COUNT(DISTINCT comment_likes.user_id) FROM comment_likes WHERE comment_likes.comment_id = comments.id) AS likes_count
           FROM comments
           JOIN users ON comments.user_id = users.id
           WHERE comments.post_id = $1
@@ -108,23 +108,41 @@ exports.deleteComment = async (id) => {
 
 exports.toggleCommentLike = async (user_id, comment_id) => {
   try {
+    console.log("🔹 切換留言按讚: user_id:", user_id, "comment_id:", comment_id);
+
+        // 檢查是否已經按讚
     const checkResult = await db.query(
       `SELECT * FROM comment_likes WHERE user_id = $1 AND comment_id = $2;`,
       [user_id, comment_id]
     );
 
+
+    console.log("🔹 查詢按讚記錄:", checkResult.rows);
+
     if (checkResult.rows.length > 0) {
+      console.log("🔹 取消按讚");
+
       await db.query(`DELETE FROM comment_likes WHERE user_id = $1 AND comment_id = $2;`,
         [user_id, comment_id]);
+
       return { liked: false };
     } else {
-      await db.query(
-        `INSERT INTO comment_likes (user_id, comment_id) VALUES ($1, $2) ON CONFLICT (user_id, comment_id) DO NOTHING;`,
+      console.log("🔹 新增按讚");
+
+      const insertResult = await db.query(
+        `INSERT INTO comment_likes (user_id, comment_id) VALUES ($1, $2) ON CONFLICT (user_id, comment_id) DO NOTHING RETURNING *;`,
         [user_id, comment_id]
       );
+
+      if (insertResult.rowCount === 0) {
+        console.log("❌ 按讚失敗，可能是 `ON CONFLICT` 問題");
+        return { liked: false };
+      }
+
       return { liked: true };
     }
   } catch (error) {
+    console.error("❌ 按讚失敗:", error);
     throw error;
   }
 };
@@ -134,9 +152,10 @@ exports.getCommentLikes = async (comment_id) => {
     console.log("查詢的 comment_id:", comment_id);
 
     const result = await db.query(`
-      SELECT users.id AS user_id, users.username 
+      SELECT comment_likes.user_id, 
+             COALESCE(users.username, '未知使用者') AS username 
       FROM comment_likes 
-      JOIN users ON comment_likes.user_id = users.id
+      LEFT JOIN users ON comment_likes.user_id = users.id
       WHERE comment_likes.comment_id = $1;
   `, [comment_id]);
 
@@ -144,6 +163,8 @@ exports.getCommentLikes = async (comment_id) => {
 
     return result.rows;
   } catch (error) {
+    console.error("❌ 獲取留言按讚失敗:", error);
+
     throw error;
   }
 };

@@ -14,7 +14,11 @@ exports.getAllComments = async (req, res) => {
 exports.getComments = async (req, res) => {
   try {
     const { post_id } = req.params;
-    const comments = await commentModel.getCommentsWithReplies(post_id);
+    if (!post_id) {
+      return res.status(400).json({ status: "error", message: "缺少 post_id" });
+    }
+
+    const comments = await commentModel.getCommentsWithReplies(post_id.trim());
     res.json({ status: "success", data: comments });
   } catch (error) {
     console.error("無法取得留言:", error);
@@ -25,12 +29,18 @@ exports.getComments = async (req, res) => {
 exports.createComment = async (req, res) => {
   try {
     const { post_id, parent_comment_id, content } = req.body;
-    const user_id = req.user.id;
+    const user_id = req.user?.id;
+
+    if (!user_id) {
+      return res.status(401).json({ status: "error", message: "未授權，請登入" });
+    }
+
     if (!post_id || !content) {
       return res.status(400).json({ status: "error", message: "缺少必要欄位" });
     }
 
-    const newComment = await commentModel.createComment(post_id, parent_comment_id, user_id, content);
+    const newComment = await commentModel.createComment(post_id.trim(), parent_comment_id, user_id, content);
+
     res.status(201).json({ status: "success", data: newComment });
   } catch (error) {
     console.error("無法新增留言:", error);
@@ -42,7 +52,11 @@ exports.updateComment = async (req, res) => {
   try {
     const { id } = req.params;
     const { content } = req.body;
-    const user_id = req.user.id;
+    const user_id = req.user?.id;
+
+    if (!user_id) {
+      return res.status(401).json({ status: "error", message: "未授權，請登入" });
+    }
 
     if (!content) {
       return res.status(400).json({ status: "error", message: "請提供留言內容" });
@@ -67,7 +81,11 @@ exports.updateComment = async (req, res) => {
 exports.deleteComment = async (req, res) => {
   try {
     const { id } = req.params;
-    const user_id = req.user.id;
+    const user_id = req.user?.id;
+
+    if (!user_id) {
+      return res.status(401).json({ status: "error", message: "未授權，請登入" });
+    }
 
     const comment = await commentModel.getCommentById(id);
     if (!comment) {
@@ -88,11 +106,18 @@ exports.deleteComment = async (req, res) => {
 exports.toggleCommentLike = async (req, res) => {
   try {
     const { comment_id } = req.params;
-    if (!req.user || !req.user.id) {
+    const user_id = req.user?.id;
+
+    if (!user_id) {
       return res.status(401).json({ status: "error", message: "未授權，請登入" });
     }
+    if (!comment_id) {
+      return res.status(400).json({ status: "error", message: "缺少 comment_id" });
+    }
 
-    const result = await commentModel.toggleCommentLike(req.user.id, comment_id);
+    console.log("🔹 按讚 / 取消按讚 comment_id:", comment_id, "user_id:", user_id);
+
+    const result = await commentModel.toggleCommentLike(req.user.id, comment_id.trim());
     res.json({ status: "success", liked: result.liked });
   } catch (error) {
     console.error("按讚留言失敗:", error);
@@ -113,7 +138,7 @@ exports.getCommentLikes = async (req, res) => {
 
     const likes = await commentModel.getCommentLikes(comment_id.trim());
     console.log("查詢結果:", likes);
-    
+
     res.json({ status: "success", data: likes });
   } catch (error) {
     console.error("無法獲取留言按讚名單:", error);
