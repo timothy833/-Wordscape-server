@@ -119,7 +119,7 @@ exports.toggleCommentLike = async (user_id, comment_id) => {
       return { liked: false };
     } else {
       await db.query(
-        `INSERT INTO comment_likes (user_id, comment_id) VALUES ($1, $2);`,
+        `INSERT INTO comment_likes (user_id, comment_id) VALUES ($1, $2) ON CONFLICT (user_id, comment_id) DO NOTHING;`,
         [user_id, comment_id]
       );
       return { liked: true };
@@ -131,12 +131,16 @@ exports.toggleCommentLike = async (user_id, comment_id) => {
 
 exports.getCommentLikes = async (comment_id) => {
   try {
+    console.log("查詢的 comment_id:", comment_id);
+
     const result = await db.query(`
       SELECT users.id AS user_id, users.username 
       FROM comment_likes 
       JOIN users ON comment_likes.user_id = users.id
       WHERE comment_likes.comment_id = $1;
   `, [comment_id]);
+
+  console.log("查詢結果:", result.rows);
 
     return result.rows;
   } catch (error) {

@@ -103,7 +103,17 @@ exports.toggleCommentLike = async (req, res) => {
 exports.getCommentLikes = async (req, res) => {
   try {
     const { comment_id } = req.params;
-    const likes = await commentModel.getCommentLikes(comment_id);
+
+
+    if (!comment_id) {
+      return res.status(400).json({ status: "error", message: "缺少 comment_id" });
+    }
+
+    console.log("API 查詢的 comment_id:", comment_id);
+
+    const likes = await commentModel.getCommentLikes(comment_id.trim());
+    console.log("查詢結果:", likes);
+    
     res.json({ status: "success", data: likes });
   } catch (error) {
     console.error("無法獲取留言按讚名單:", error);
