@@ -79,7 +79,6 @@ exports.login = async (req, res, next) => {
 
 // ✅ 登出 API（讓 Token 立即失效）
 const invalidTokens = new Set(); // ✅ 存登出 Token
-exports.invalidTokens = invalidTokens; // ✅ 這樣不會覆蓋掉其他 exports
 
 
 exports.logout = async (req, res) => {
@@ -106,6 +105,9 @@ exports.logout = async (req, res) => {
     res.status(500).json({ error: "登出失敗" });
   }
 }
+
+
+exports.invalidTokens = invalidTokens; // ✅ 這樣不會覆蓋掉其他 exports
 
 
 
@@ -187,7 +189,7 @@ exports.forgotPassword = async (req, res, next) => {
                 <p>親愛的 ${user.username}:</p>
                 <p>我們收到您要求重設密碼的請求。如果這是您本人發出的請求，請點擊以下連結設定新密碼：</p>
                 <p>
-                    <a href="${process.env.CLIENT_ORIGIN}/reset-password?token=${token}" 
+                    <a href="${process.env.RESET_PASSWARD_PAGE}/reset-password?token=${token}" 
                        style="background-color:#008CBA;color:white;padding:10px 20px;text-decoration:none;">
                        🔄 重設密碼
                     </a>

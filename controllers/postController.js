@@ -19,7 +19,7 @@ const { s3 } = require("../config-s3");
 
 
 // **通用 R2 上傳函式（支援 Base64 & 檔案）**
-exports.uploadToR2 = async (file, folder) => {
+const uploadToR2 = async (file, folder) => {
   try {
     let fileBuffer; // 先宣告變數
     let fileName;
@@ -99,6 +99,7 @@ const processBatchUpload = async (images, folder) => {
   return urls;
 };
 
+module.exports = { uploadToR2, processBatchUpload };  // ✅ 最後一起導出
 
 // **封面圖片上傳 API**
 exports.uploadCoverImage = async (req, res) => {

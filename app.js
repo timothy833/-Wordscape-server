@@ -58,6 +58,7 @@ const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 分鐘
   max: 100,
   message: { error: "請求過於頻繁，請稍後再試" },
+  keyGenerator: (req) => req.ip, // ✅ 依據 IP 限制
 });
 app.use("/api", globalLimiter);
 
@@ -66,11 +67,13 @@ const imageLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 分鐘
   max: 30,
   message: { error: "圖片 API 請求過於頻繁，請稍後再試" },
+  keyGenerator: (req) => req.ip, // ✅ 依據 IP 限制
 });
+app.use("/api/proxyImage", imageLimiter);
 
 const proxyImageRoutes = require('./routes/proxyImageRoutes');
 app.use("/api/proxyImage", proxyImageRoutes);
-app.use("/api/proxyImage", imageLimiter);
+
 
 
 
