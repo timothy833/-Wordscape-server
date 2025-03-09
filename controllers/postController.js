@@ -99,7 +99,10 @@ const processBatchUpload = async (images, folder) => {
   return urls;
 };
 
-module.exports = { uploadToR2, processBatchUpload };  // ✅ 最後一起導出
+// ✅ 使用 `Object.assign` 確保不覆蓋其他 exports
+Object.assign(module.exports, {
+  uploadToR2
+});
 
 // **封面圖片上傳 API**
 exports.uploadCoverImage = async (req, res) => {
