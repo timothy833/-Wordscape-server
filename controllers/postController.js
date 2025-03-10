@@ -261,8 +261,8 @@ exports.createPost = async (req, res) => {
 exports.updatePost = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, content ,description } = req.body;
-    const updatedPost = await postModel.updatePost(id, { title, content, description });
+    const { title, content ,description, image_url } = req.body;
+    const updatedPost = await postModel.updatePost(id, { title, content, description, image_url });
 
     if (!updatedPost) {
       return res.status(404).json({ status: "error", message: "文章不存在" });
