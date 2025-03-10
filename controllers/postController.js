@@ -163,10 +163,7 @@ exports.uploadContentImage = async (req, res) => {
 // **取得所有文章**
 exports.getPosts = async (req, res) => {
   try {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = 10; //每頁最多顯示 10 筆資料
-
-    const posts = await postModel.getPosts(page, limit);
+    const posts = await postModel.getPosts();
     res.json({ status: "success", data: posts });
   } catch (error) {
     console.error("無法取得文章列表:", error);
@@ -215,10 +212,7 @@ exports.getPostsByUser = async (req, res) => {
 
 exports.getFullPostsWithComments = async (req, res) => {
   try {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = 10; //每頁最多顯示 10 筆資料
-
-    const posts = await postModel.getFullPostsWithComments(page, limit);
+    const posts = await postModel.getFullPostsWithComments();
     res.json({ status: "success", data: posts });
   } catch (error) {
     console.error("無法取得完整文章列表:", error);

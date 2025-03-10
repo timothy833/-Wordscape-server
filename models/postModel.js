@@ -1,9 +1,7 @@
 const db = require('../db');
 
-exports.getPosts = async (page = 1, limit = 10) => {
+exports.getPosts = async () => {
   try {
-    const offset = (page - 1) * limit;
-
     const postResult = await db.query(`
       SELECT posts.*, 
              users.username AS author_name, 
@@ -16,9 +14,8 @@ exports.getPosts = async (page = 1, limit = 10) => {
       LEFT JOIN post_likes ON posts.id = post_likes.post_id
       LEFT JOIN post_favorites ON posts.id = post_favorites.post_id
       GROUP BY posts.id, users.username, categories.id, categories.name
-      ORDER BY posts.created_at DESC
-      LIMIT $1 OFFSET $2;
-    `, [limit, offset]);
+      ORDER BY posts.created_at DESC;
+    `);
 
     const posts = postResult.rows;
 
@@ -193,10 +190,8 @@ exports.getPostsByUser = async (userId) => {
 
 
 
-exports.getFullPostsWithComments = async (page = 1, limit = 10) => {
+exports.getFullPostsWithComments = async () => {
   try {
-    const offset = (page - 1) * limit;
-
     // 取得所有文章資訊
     const postResult = await db.query(`
       SELECT posts.*, users.username AS author_name, 
@@ -209,9 +204,8 @@ exports.getFullPostsWithComments = async (page = 1, limit = 10) => {
       LEFT JOIN post_likes ON posts.id = post_likes.post_id
       LEFT JOIN post_favorites ON posts.id = post_favorites.post_id
       GROUP BY posts.id, users.username, categories.id, categories.name
-      ORDER BY posts.created_at DESC
-      LIMIT $1 OFFSET $2;
-    `, [limit, offset]);
+      ORDER BY posts.created_at DESC;
+    `);
 
     const posts = postResult.rows;
 
