@@ -5,7 +5,7 @@ const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const fs = require("fs");
 const path = require("path");
 const { s3 } = require("../config-s3");
-const  deleteFromR2 = require('../controllers/deleteImageController');
+const  { deleteFromR2 } = require('../controllers/deleteImageController');
 const cheerio = require('cheerio'); // 解析 HTML 內容中的 `<img>`
 //設定 Cloudflare R2
 // const s3 = new S3Client({
@@ -260,9 +260,13 @@ exports.createPost = async (req, res) => {
 
 // ✅ **判斷是否為 Cloudflare 快取代理圖片 //刪除更新使用**
 const isCloudflareProxyImage = (imageUrl) => {
-  return imageUrl.startsWith(process.env.CDN_BASE_URL + "/api/image?key=");
-};
+  if (!imageUrl) return false; // ✅ 防止 `null` 或 `undefined` 錯誤
 
+  console.log(`🌐 檢查圖片網址: ${imageUrl}`);
+
+  // ✅ **確保網址是 Cloudflare Pages 快取代理的圖片**
+  return imageUrl.startsWith(`${process.env.CDN_BASE_URL}/api/image?key=`);
+};
 
 // **更新文章**
 exports.updatePost = async (req, res) => {
@@ -336,6 +340,7 @@ exports.deletePost = async (req, res) => {
     // ✅ **刪除封面 `image_url`**
     if(deletedPost.image_url && isCloudflareProxyImage(deletedPost.image_url)){
       const fileKey = decodeURIComponent(deletedPost.image_url.split("key=")[1]);
+      console.log(`🖼 封面圖片 fileKey: ${fileKey}`);
       deleteImageKeys.push(fileKey);
     }
 
@@ -343,11 +348,19 @@ exports.deletePost = async (req, res) => {
     const $ = cheerio.load(deletedPost.content);
     $('img').each((_, img)=> {
       const imgSrc = $(img).attr('src');
-      if(imgSrc && isCloudflareProxyImage(imgSrc)){
+      console.log(`🔍 找到圖片: ${imgSrc}`);
+
+      const isProxy = isCloudflareProxyImage(imgSrc);
+      console.log(`🧐 這是 Cloudflare Proxy 嗎？ ${isProxy}`);
+
+      if(imgSrc && isProxy){
+        console.log(`✅ 確認為 Cloudflare Proxy: ${imgSrc}`);
         const fileKey = decodeURIComponent(imgSrc.split("key=")[1]);
+        console.log(`🖼 內容圖片 fileKey: ${fileKey}`);
         deleteImageKeys.push(fileKey);
       }
     });
+    console.log(`🔍 總共要刪除 ${deleteImageKeys.length} 張圖片`);
 
     // ✅ **刪除所有 R2 圖片**
     for(const key of deleteImageKeys) {
@@ -359,7 +372,7 @@ exports.deletePost = async (req, res) => {
 
     
 
-    res.json({ status: "success", message: "文章已刪除" });
+    res.json({ status: "success", message: `文章已刪除，共刪除 ${deleteImageKeys.length} 張圖片` });
   } catch (error) {
     console.error("刪除文章失敗:", error);
     res.status(500).json({ status: "error", message: "無法刪除文章" });
