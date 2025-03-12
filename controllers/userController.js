@@ -5,6 +5,8 @@ const nodemailer = require('nodemailer');
 require('dotenv').config(); // 確保 .env 變數被讀取
 
 const { uploadToR2 } = require("../controllers/postController");
+const { deleteFromR2 } = require("../controllers/deleteImageController");
+
 
 // 取得所有使用者
 exports.getUsers = async (req, res, next) => {
