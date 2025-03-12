@@ -147,6 +147,11 @@ exports.updateUser = async (req, res, next) => {
     // ✅ ✅ **處理大頭貼更新** 如果是外部圖片 URL，不上傳 R2，直接使用
     if (typeof profile_picture === "string" && profile_picture.startsWith("http")) {
       updateFields.profile_picture = profile_picture;
+       // ✅ **刪除舊大頭貼**
+       if (existingUser.profile_picture && isCloudflareProxyImage(existingUser.profile_picture)) {
+        const fileKey = decodeURIComponent(existingUser.profile_picture.split("key=")[1]);
+        await deleteFromR2(fileKey);
+      }
     }
     // ✅ 如果是上傳圖片，則存到 R2
     else if (file) {

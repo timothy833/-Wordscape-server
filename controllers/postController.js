@@ -265,7 +265,7 @@ const isCloudflareProxyImage = (imageUrl) => {
   console.log(`🌐 檢查是否為 Cloudflare圖片網址: ${imageUrl}`);
 
   const baseURL = `${process.env.CDN_BASE_URL}/api/image?key=`;
-    
+
   // ✅ 直接判斷 imageUrl 是否以 baseURL 開頭
   return imageUrl.startsWith(baseURL);
   
@@ -284,8 +284,15 @@ exports.updatePost = async (req, res) => {
     }
     let deleteImageKeys = [];
 
-    // ✅ **如果封面圖片變更，刪除舊的 R2 圖片**
-    if(image_url !== oldPost.imageUrl && isCloudflareProxyImage(oldPost.image_url)){
+
+    // ✅ **處理封面圖片**
+    if (typeof image_url === "string" && image_url.startsWith("http")) {
+      if (oldPost.image_url && isCloudflareProxyImage(oldPost.image_url)) {
+        const fileKey = decodeURIComponent(oldPost.image_url.split("key=")[1]);
+        await deleteFromR2(fileKey);
+      }
+    }// ✅ **如果封面圖片變更，刪除舊的 R2 圖片**
+    else if(image_url !== oldPost.imageUrl && isCloudflareProxyImage(oldPost.image_url)){
       const fileKey = decodeURIComponent(oldPost.image_url.split("key=")[1]);
       if (fileKey) deleteImageKeys.push(fileKey);
     }

@@ -84,6 +84,11 @@ exports.updateBanner = async (req, res, next) => {
         // ✅ 如果 image_url 是外部 URL，則直接使用
         if (typeof image_url === "string" && image_url.startsWith("http")) {
             finalImageUrl = image_url;
+
+            if (oldBanner.image_url && isCloudflareProxyImage(oldBanner.image_url)) {
+                const fileKey = decodeURIComponent(oldBanner.image_url.split("key=")[1]);
+                await deleteFromR2(fileKey);
+            }
         }
 
 
