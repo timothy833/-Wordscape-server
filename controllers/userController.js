@@ -144,26 +144,28 @@ exports.updateUser = async (req, res, next) => {
     if (username) updateFields.username = username;
     if (email) updateFields.email = email;
     if (bio) updateFields.bio = bio;
+
+    let newProfilePicture = existingUser.profile_picture; // 預設為舊的圖片
+    let shouldDeleteOldImage = false; // **新增變數來判斷是否真的需要刪除舊圖片**
     
 
-    // ✅ ✅ **處理大頭貼更新** 如果是外部圖片 URL，不上傳 R2，直接使用
+    // ✅ **如果 `profile_picture` 是外部 URL**
     if (typeof profile_picture === "string" && profile_picture.startsWith("http")) {
-      updateFields.profile_picture = profile_picture;
-       // ✅ **刪除舊大頭貼**
-       if (existingUser.profile_picture && isCloudflareProxyImage(existingUser.profile_picture)) {
-        const fileKey = decodeURIComponent(existingUser.profile_picture.split("key=")[1]);
-        await deleteFromR2(fileKey);
+      if (profile_picture !== existingUser.profile_picture) { 
+        newProfilePicture = profile_picture;
+        shouldDeleteOldImage = true; // **確保圖片真的有變更時，才刪除舊 R2 圖片**
       }
     }
-    // ✅ 如果是上傳圖片，則存到 R2
+    // ✅ **如果上傳了新圖片，則存到 R2**
     else if (file) {
-      updateFields.profile_picture = await uploadToR2(file, "profile_picture");
+      newProfilePicture = await uploadToR2(file, "profile_pictures");
+      shouldDeleteOldImage = true; // **如果有新圖片，就刪除舊 R2 圖片**
+    }
 
-      // ✅ **刪除舊大頭貼**
-      if (existingUser.profile_picture && isCloudflareProxyImage(existingUser.profile_picture)) {
-        const fileKey = decodeURIComponent(existingUser.profile_picture.split("key=")[1]);
-        await deleteFromR2(fileKey);
-      }
+    // ✅ **刪除舊大頭貼 (如果確定變更)**
+    if (shouldDeleteOldImage && existingUser.profile_picture && isCloudflareProxyImage(existingUser.profile_picture)) {
+      const fileKey = decodeURIComponent(existingUser.profile_picture.split("key=")[1]);
+      await deleteFromR2(fileKey);
     }
 
 

@@ -243,7 +243,7 @@ exports.createPost = async (req, res) => {
       title,
       content, // 這裡已經是處理過的 HTML，內含 R2 圖片 URL
       description, // ✅ 新增 `description`
-      status: status || 'draft',
+      status: status || 'published',
       image_url: image_url || null // ✅ 存入轉換後的 URL
     };
 
@@ -336,6 +336,32 @@ exports.updatePost = async (req, res) => {
   } catch (error) {
     console.error("更新文章失敗:", error);
     res.status(500).json({ status: "error", message: "無法更新文章" });
+  }
+};
+
+// **切換文章狀態 API**
+exports.updateStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body; // 期望的狀態
+
+    if (!["draft", "published"].includes(status)) {
+      return res.status(400).json({ status: "error", message: "無效的狀態" });
+    }
+
+    // 取得舊文章
+    const oldPost = await postModel.getPostById(id);
+    if (!oldPost) {
+      return res.status(404).json({ status: "error", message: "文章不存在" });
+    }
+
+    // 更新文章狀態
+    const updatedPost = await postModel.updatePost(id, { status });
+
+    res.json({ status: "success", data: updatedPost });
+  } catch (error) {
+    console.error("❌ 更新文章狀態失敗:", error);
+    res.status(500).json({ status: "error", message: "無法更新文章狀態" });
   }
 };
 

@@ -57,6 +57,8 @@ router.post("/upload/cover", authMiddleware, upload.single("cover"), postControl
 //上傳Quill 文章內圖片
 router.post("/upload/content", authMiddleware, postController.uploadContentImage);
 
+// ✅ 更新文章狀態
+router.put("/posts/:id/status", authMiddleware, updateStatus);
 
 // ✅ 代理圖片（Cloudflare Cache）
 // router.get("/proxy/image", postController.proxyImage);
