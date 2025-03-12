@@ -58,7 +58,7 @@ router.post("/upload/cover", authMiddleware, upload.single("cover"), postControl
 router.post("/upload/content", authMiddleware, postController.uploadContentImage);
 
 // ✅ 更新文章狀態
-router.put("/posts/:id/status", authMiddleware, updateStatus);
+router.put("/posts/:id/status", authMiddleware, postController.updateStatus);
 
 // ✅ 代理圖片（Cloudflare Cache）
 // router.get("/proxy/image", postController.proxyImage);
