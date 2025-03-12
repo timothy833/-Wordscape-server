@@ -262,10 +262,18 @@ exports.createPost = async (req, res) => {
 const isCloudflareProxyImage = (imageUrl) => {
   if (!imageUrl) return false; // ✅ 防止 `null` 或 `undefined` 錯誤
 
-  console.log(`🌐 檢查圖片網址: ${imageUrl}`);
+  console.log(`🌐 檢查是否為 Cloudflare圖片網址: ${imageUrl}`);
 
-  // ✅ **確保網址是 Cloudflare Pages 快取代理的圖片**
-  return imageUrl.startsWith(`${process.env.CDN_BASE_URL}/api/image?key=`);
+  try {
+    const urlObj = new URL(imageUrl); // 解析 URL
+    const baseURL = `${process.env.CDN_BASE_URL}/api/image?key=`;
+
+    // ✅ 確保 URL 符合 Cloudflare Proxy 格式
+    return urlObj.origin + urlObj.pathname === baseURL && urlObj.searchParams.has("key");
+  } catch (error) {
+    console.error(`⚠️ 無效的網址: ${imageUrl}`, error);
+    return false;
+  }
 };
 
 // **更新文章**
@@ -351,12 +359,14 @@ exports.deletePost = async (req, res) => {
       const imgSrc = $(img).attr('src');
       console.log(`🔍 找到圖片: ${imgSrc}`);
 
+      if (!imgSrc) return;
+
       const isProxy = isCloudflareProxyImage(imgSrc);
       console.log(`🧐 這是 Cloudflare Proxy 嗎？ ${isProxy}`);
 
-      if(imgSrc && isProxy){
+      if(isProxy){
         console.log(`✅ 確認為 Cloudflare Proxy: ${imgSrc}`);
-        const fileKey = decodeURIComponent(imgSrc.split("key=")[1]);
+        const fileKey = decodeURIComponent(new URL(imgSrc).searchParams.get("key"));
         console.log(`🖼 內容圖片 fileKey: ${fileKey}`);
         deleteImageKeys.push(fileKey);
       }
