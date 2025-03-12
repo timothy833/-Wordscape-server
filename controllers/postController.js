@@ -5,7 +5,8 @@ const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const fs = require("fs");
 const path = require("path");
 const { s3 } = require("../config-s3");
-
+const  deleteFromR2 = require('../controllers/deleteImageController');
+const cheerio = require('cheerio'); // 解析 HTML 內容中的 `<img>`
 //設定 Cloudflare R2
 // const s3 = new S3Client({
 //   region: "auto", // Cloudflare R2 不需要設定特定區域
@@ -257,11 +258,59 @@ exports.createPost = async (req, res) => {
   }
 };
 
+// ✅ **判斷是否為 Cloudflare 快取代理圖片 //刪除更新使用**
+const isCloudflareProxyImage = (imageUrl) => {
+  return imageUrl.startsWith(process.env.CDN_BASE_URL + "/api/image?key=");
+};
+
+
 // **更新文章**
 exports.updatePost = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content ,description, image_url } = req.body;
+
+     // 1️⃣ 取得舊文章資料
+    const oldPost = await postModel.getPostById(id);
+    if(!oldPost){
+      return res.status(404).json({status: "error", message: "文章不存在"});
+    }
+    let deleteImageKeys = [];
+
+    // ✅ **如果封面圖片變更，刪除舊的 R2 圖片**
+    if(image_url !== oldPost.imageUrl && isCloudflareProxyImage(oldPost.image_url)){
+      const fileKey = decodeURIComponent(oldPost.image_url.split("key=")[1]);
+      deleteImageKeys.push(fileKey);
+    }
+
+    // ✅ **解析 `content` 內的新圖片**
+    const $newContent = cheerio.load(content);
+    let newImageKeys = new Set();
+    $newContent('img').each((_, img)=> {
+      const imgSrc = $(img).attr("src");
+      if(imgSrc && isCloudflareProxyImage(imgSrc)){
+        newImageKeys.add(decodeURIComponent(imgSrc.split("key=")))
+      }
+    })
+
+    // ✅ **解析舊文章 `content` 內的 `<img>` 取得舊圖片**
+    const $oldContent = cheerio.load(oldPost,content);
+    $oldContent('img').each((_, img)=>{
+      const oldImgSrc = $(img).attr('src');
+      if(oldImgSrc && isCloudflareProxyImage(oldImgSrc)){
+        const oldKey = decodeURIComponent(oldImgSrc.split("key=")[1]);
+        if(!newImageKeys.has(oldKey)) {
+          deleteImageKeys.push(oldKey); //只刪除已被移除的圖片
+        }
+      }
+    });
+
+    // ✅ **刪除不再使用的 R2 圖片**
+    for(const key of deleteImageKeys){
+      await deleteFromR2(key);
+    }
+
+    // ✅ **更新資料庫內的文章**
     const updatedPost = await postModel.updatePost(id, { title, content, description, image_url });
 
     if (!updatedPost) {
@@ -282,7 +331,34 @@ exports.deletePost = async (req, res) => {
     const deletedPost = await postModel.getPostById(req.params.id);
     if (!deletedPost) return res.status(404).json({ status: "error", message: "找不到文章" });
 
+    let deleteImageKeys = [];
+
+    // ✅ **刪除封面 `image_url`**
+    if(deletedPost.image_url && isCloudflareProxyImage(deletedPost.image_url)){
+      const fileKey = decodeURIComponent(deletedPost.image_url.split("key=")[1]);
+      deleteImageKeys.push(fileKey);
+    }
+
+    //✅ **解析 `content` 內的 `<img>` 取得所有圖片**
+    const $ = cheerio.load(deletedPost.content);
+    $('img').each((_, img)=> {
+      const imgSrc = $(img).attr('src');
+      if(imgSrc && isCloudflareProxyImage(imgSrc)){
+        const fileKey = decodeURIComponent(imgSrc.split("key=")[1]);
+        deleteImageKeys.push(fileKey);
+      }
+    });
+
+    // ✅ **刪除所有 R2 圖片**
+    for(const key of deleteImageKeys) {
+      await deleteFromR2(key);
+    }
+    
+    // ✅ **刪除資料庫內的文章**
     await postModel.deletePost(req.params.id);
+
+    
+
     res.json({ status: "success", message: "文章已刪除" });
   } catch (error) {
     console.error("刪除文章失敗:", error);
