@@ -323,6 +323,24 @@ exports.updatePost = async (id, data) => {
 };
 
 
+exports.updatePostStatus = async (id, status) => {
+  try {
+    // 🔍 **先檢查文章是否存在**
+    const postResult = await db.query(`SELECT * FROM posts WHERE id = $1;`, [id]);
+    if (postResult.rows.length === 0) return null; // ❌ 文章不存在
+
+    // ✅ **更新文章狀態**
+    const updateResult = await db.query(
+      `UPDATE posts SET status = $1 WHERE id = $2 RETURNING *;`,
+      [status, id]
+    );
+
+    return updateResult.rows[0]; // 返回更新後的文章
+  } catch (error) {
+    throw new Error("❌ 更新文章狀態失敗：" + error.message);
+  }
+};
+
 
 exports.deletePost = async (id) => {
   await db.query(`DELETE FROM posts WHERE id = $1`, [id]);

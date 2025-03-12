@@ -349,14 +349,12 @@ exports.updateStatus = async (req, res) => {
       return res.status(400).json({ status: "error", message: "無效的狀態" });
     }
 
-    // 取得舊文章
-    const oldPost = await postModel.getPostById(id);
-    if (!oldPost) {
+    // ✅ **呼叫 `updatePostStatus`，直接檢查文章並更新**
+    const updatedPost = await postStatusModel.updatePostStatus(id, status);
+
+    if (!updatedPost) {
       return res.status(404).json({ status: "error", message: "文章不存在" });
     }
-
-    // 更新文章狀態
-    const updatedPost = await postModel.updatePost(id, { status });
 
     res.json({ status: "success", data: updatedPost });
   } catch (error) {
