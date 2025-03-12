@@ -342,6 +342,7 @@ exports.updatePost = async (req, res) => {
 // **切換文章狀態 API**
 exports.updateStatus = async (req, res) => {
   try {
+    console.log("🔔 進入 updateStatus，收到 ID:", req.params.id);
     const { id } = req.params;
     const { status } = req.body; // 期望的狀態
 
@@ -350,7 +351,7 @@ exports.updateStatus = async (req, res) => {
     }
 
     // ✅ **呼叫 `updatePostStatus`，直接檢查文章並更新**
-    const updatedPost = await postStatusModel.updatePostStatus(id, status);
+    const updatedPost = await postModel.updatePostStatus(id, status);
 
     if (!updatedPost) {
       return res.status(404).json({ status: "error", message: "文章不存在" });

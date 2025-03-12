@@ -89,6 +89,14 @@ const bannerRoutes = require('./routes/bannerRoutes');
 // const postTagRoutes = require('./routes/postTagRoutes');
 
 
+app.use((req, res, next) => {
+  console.log(`🌍 [${req.method}] ${req.url} - IP: ${req.ip}`);
+  console.log("🔍 Headers:", req.headers);
+  console.log("🔹 Body:", req.body);
+  next();
+});
+
+
 // 8. 設定 API 路由（路徑可依需求自行調整）
 // 如：當請求以 /api/users 開頭時，交由 userRoutes 處理
 app.use('/api/users', userRoutes);
