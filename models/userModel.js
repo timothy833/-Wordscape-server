@@ -57,8 +57,16 @@ exports.createUser = async (user) => {
 // 更新使用者資訊（支援更改密碼）
 exports.updateUser = async (id, updateFields) => {
   try {
+
+    // ✅ 檢查 updateFields 是否為空
+    if (!id || Object.keys(updateFields).length === 0) {
+      throw new Error("❌ 無效的更新請求，請提供至少一個欄位更新");
+    }
+  
     const keys = Object.keys(updateFields);
     const values = Object.values(updateFields);
+
+    // ✅ 構造 SQL 語句
     let setQuery = keys.map((key, index) => `${key} = $${index + 1}`).join(", ");
 
     const query = `
@@ -73,7 +81,7 @@ exports.updateUser = async (id, updateFields) => {
     if (result.rows.length === 0) {
       throw new Error("User not found");
     }
-    return result.rows[0];
+    return result.rows[0]; // ✅ 回傳更新後的使用者資訊
   } catch (error) {
     console.error("Error updating user:", error);
     throw error; // 讓上層函式（如 `controller`）處理錯誤

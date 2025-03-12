@@ -179,7 +179,7 @@ exports.updateUser = async (req, res, next) => {
     if (birthday !== undefined) updateFields.birthday = birthday;
 
     // ✅ **更新使用者資料**
-    const updateUser = await userModel.updateUser(req.params.id, updateFields);
+    const updateUser = await userModel.updateUser(id, updateFields);
 
     res.json({ message: '更新使用者成功', user: updateUser });
   } catch (error) {
