@@ -301,7 +301,7 @@ exports.updatePost = async (req, res) => {
     // ✅ **解析舊文章 `content` 內的 `<img>` 取得舊圖片**
     const $oldContent = cheerio.load(oldPost.content);
     $oldContent('img').each((_, img)=>{
-      const oldImgSrc = $(img).attr('src');
+      const oldImgSrc = $oldContent(img).attr('src');
       if(oldImgSrc && isCloudflareProxyImage(oldImgSrc)){
         const oldKey = decodeURIComponent(oldImgSrc.split("key=")[1]);
         if(oldKey && !newImageKeys.has(oldKey)) {
