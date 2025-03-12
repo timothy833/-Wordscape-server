@@ -73,7 +73,7 @@ const uploadToR2 = async (file, folder) => {
     // **本地 vs 雲端 儲存不同 URL**
     const resultUrl = process.env.NODE_ENV === "development"
       ? await getSignedUrl(s3, new GetObjectCommand(uploadParams), { expiresIn: 604800 })
-      : `${process.env.CDN_BASE_URL}api/image?key=${encodeURIComponent(fileName)}`; // **確保 URL 解析  ✅ 修正 `resultUrl`，確保 `key` 被 `encodeURIComponent()`**
+      : `${process.env.CDN_BASE_URL}/api/image?key=${encodeURIComponent(fileName)}`; // **確保 URL 解析  ✅ 修正 `resultUrl`，確保 `key` 被 `encodeURIComponent()`**
 
     console.log("📌 返回的圖片 URL:", resultUrl);
     return resultUrl;
@@ -264,16 +264,11 @@ const isCloudflareProxyImage = (imageUrl) => {
 
   console.log(`🌐 檢查是否為 Cloudflare圖片網址: ${imageUrl}`);
 
-  try {
-    const urlObj = new URL(imageUrl); // 解析 URL
-    const baseURL = `${process.env.CDN_BASE_URL}/api/image?key=`;
-
-    // ✅ 確保 URL 符合 Cloudflare Proxy 格式
-    return urlObj.origin + urlObj.pathname === baseURL && urlObj.searchParams.has("key");
-  } catch (error) {
-    console.error(`⚠️ 無效的網址: ${imageUrl}`, error);
-    return false;
-  }
+  const baseURL = `${process.env.CDN_BASE_URL}/api/image?key=`;
+    
+  // ✅ 直接判斷 imageUrl 是否以 baseURL 開頭
+  return imageUrl.startsWith(baseURL);
+  
 };
 
 // **更新文章**
