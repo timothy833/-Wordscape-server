@@ -139,46 +139,58 @@ exports.updateUser = async (req, res, next) => {
       return res.status(404).json({ error: '使用者不存在' });
     }
 
-    //構建要更新的欄位
+    //2️⃣構建要更新的欄位
     const updateFields = {};
     if (username) updateFields.username = username;
     if (email) updateFields.email = email;
     if (bio) updateFields.bio = bio;
+    if (phone !== undefined) updateFields.phone = phone;
+    if (gender !== undefined) updateFields.gender = gender;
+    if (birthday !== undefined) updateFields.birthday = birthday;
 
     let newProfilePicture = existingUser.profile_picture; // 預設為舊的圖片
     let shouldDeleteOldImage = false; // **新增變數來判斷是否真的需要刪除舊圖片**
     
 
-    // ✅ **如果 `profile_picture` 是外部 URL**
+    // 3️⃣ **處理 `profile_picture` 變更**
     if (typeof profile_picture === "string" && profile_picture.startsWith("http")) {
+        // ✅ 如果提供了新的圖片 URL，且不同於舊圖片（外部圖片連結）
       if (profile_picture !== existingUser.profile_picture) { 
         newProfilePicture = profile_picture;
-        shouldDeleteOldImage = true; // **確保圖片真的有變更時，才刪除舊 R2 圖片**
+        shouldDeleteOldImage = true; // ✅ 確保有變更才刪除舊圖片
       }
     }
-    // ✅ **如果上傳了新圖片，則存到 R2**
     else if (file) {
+       // ✅ 如果上傳了新圖片
       newProfilePicture = await uploadToR2(file, "profile_picture");
       shouldDeleteOldImage = true; // **如果有新圖片，就刪除舊 R2 圖片**
     }
 
-    // ✅ **刪除舊大頭貼 (如果確定變更)**
+    // 4️⃣ **確保 `profile_picture` 被更新**
+    if (newProfilePicture !== existingUser.profile_picture) {
+      updateFields.profile_picture = newProfilePicture;
+    }
+
+    // 5️⃣ **刪除舊大頭貼 (如果確定變更)**
     if (shouldDeleteOldImage && existingUser.profile_picture && isCloudflareProxyImage(existingUser.profile_picture)) {
       const fileKey = decodeURIComponent(existingUser.profile_picture.split("key=")[1]);
       await deleteFromR2(fileKey);
     }
 
 
-    // 如果有新密碼先進行加密
+    // 6️⃣如果有新密碼先進行加密
     if (password) {
       updateFields.password = await bcrypt.hash(password, 10);
     }
 
-    if (phone !== undefined) updateFields.phone = phone;
-    if (gender !== undefined) updateFields.gender = gender;
-    if (birthday !== undefined) updateFields.birthday = birthday;
+  
+    // 7️⃣ **檢查 `updateFields` 是否為空**
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(400).json({ error: '❌ 無效的更新請求，請提供至少一個欄位更新' });
+    }
 
-    // ✅ **更新使用者資料**
+
+    // 8️⃣ **執行更新**
     const updateUser = await userModel.updateUser(id, updateFields);
 
     res.json({ message: '更新使用者成功', user: updateUser });
