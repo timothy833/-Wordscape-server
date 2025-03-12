@@ -158,7 +158,7 @@ exports.updateUser = async (req, res, next) => {
     }
     // ✅ **如果上傳了新圖片，則存到 R2**
     else if (file) {
-      newProfilePicture = await uploadToR2(file, "profile_pictures");
+      newProfilePicture = await uploadToR2(file, "profile_picture");
       shouldDeleteOldImage = true; // **如果有新圖片，就刪除舊 R2 圖片**
     }
 
