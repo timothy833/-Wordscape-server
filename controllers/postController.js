@@ -284,26 +284,27 @@ exports.updatePost = async (req, res) => {
     // ✅ **如果封面圖片變更，刪除舊的 R2 圖片**
     if(image_url !== oldPost.imageUrl && isCloudflareProxyImage(oldPost.image_url)){
       const fileKey = decodeURIComponent(oldPost.image_url.split("key=")[1]);
-      deleteImageKeys.push(fileKey);
+      if (fileKey) deleteImageKeys.push(fileKey);
     }
 
     // ✅ **解析 `content` 內的新圖片**
     const $newContent = cheerio.load(content);
     let newImageKeys = new Set();
     $newContent('img').each((_, img)=> {
-      const imgSrc = $(img).attr("src");
+      const imgSrc = $newContent(img).attr("src");
       if(imgSrc && isCloudflareProxyImage(imgSrc)){
-        newImageKeys.add(decodeURIComponent(imgSrc.split("key=")))
+        const newKey = decodeURIComponent(imgSrc.split("key=")[1]);
+        if (newKey) newImageKeys.add(newKey);
       }
     })
 
     // ✅ **解析舊文章 `content` 內的 `<img>` 取得舊圖片**
-    const $oldContent = cheerio.load(oldPost,content);
+    const $oldContent = cheerio.load(oldPost.content);
     $oldContent('img').each((_, img)=>{
       const oldImgSrc = $(img).attr('src');
       if(oldImgSrc && isCloudflareProxyImage(oldImgSrc)){
         const oldKey = decodeURIComponent(oldImgSrc.split("key=")[1]);
-        if(!newImageKeys.has(oldKey)) {
+        if(oldKey && !newImageKeys.has(oldKey)) {
           deleteImageKeys.push(oldKey); //只刪除已被移除的圖片
         }
       }
