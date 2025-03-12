@@ -110,6 +110,18 @@ exports.logout = async (req, res) => {
 exports.invalidTokens = invalidTokens; // ✅ 這樣不會覆蓋掉其他 exports
 
 
+// ✅ **判斷是否為 Cloudflare 快取代理圖片 //刪除更新使用**
+const isCloudflareProxyImage = (imageUrl) => {
+  if (!imageUrl) return false; // ✅ 防止 `null` 或 `undefined` 錯誤
+
+  console.log(`🌐 檢查是否為 Cloudflare圖片網址: ${imageUrl}`);
+
+  const baseURL = `${process.env.CDN_BASE_URL}/api/image?key=`;
+  
+  // ✅ 直接判斷 imageUrl 是否以 baseURL 開頭
+  return imageUrl.startsWith(baseURL);
+  
+};
 
 
 // 更新使用者資訊（支援更改密碼）
@@ -119,7 +131,7 @@ exports.updateUser = async (req, res, next) => {
     const { username, email, bio, profile_picture, password, phone, gender, birthday } = req.body;
     const file = req.file //✅ Multer 上傳的檔案
 
-    //先檢查使用者是否存在
+    // 1️⃣先檢查使用者是否存在
     const existingUser = await userModel.getUserById(id);
     if (!existingUser) {
       return res.status(404).json({ error: '使用者不存在' });
@@ -130,14 +142,21 @@ exports.updateUser = async (req, res, next) => {
     if (username) updateFields.username = username;
     if (email) updateFields.email = email;
     if (bio) updateFields.bio = bio;
+    
 
-    // ✅ 如果是外部圖片 URL，不上傳 R2，直接使用
+    // ✅ ✅ **處理大頭貼更新** 如果是外部圖片 URL，不上傳 R2，直接使用
     if (typeof profile_picture === "string" && profile_picture.startsWith("http")) {
       updateFields.profile_picture = profile_picture;
     }
     // ✅ 如果是上傳圖片，則存到 R2
     else if (file) {
       updateFields.profile_picture = await uploadToR2(file, "profile_picture");
+
+      // ✅ **刪除舊大頭貼**
+      if (existingUser.profile_picture && isCloudflareProxyImage(existingUser.profile_picture)) {
+        const fileKey = decodeURIComponent(existingUser.profile_picture.split("key=")[1]);
+        await deleteFromR2(fileKey);
+      }
     }
 
 
@@ -150,6 +169,7 @@ exports.updateUser = async (req, res, next) => {
     if (gender !== undefined) updateFields.gender = gender;
     if (birthday !== undefined) updateFields.birthday = birthday;
 
+    // ✅ **更新使用者資料**
     const updateUser = await userModel.updateUser(req.params.id, updateFields);
 
     res.json({ message: '更新使用者成功', user: updateUser });
@@ -227,6 +247,16 @@ exports.resetPassword = async (req, res, next) => {
 // 刪除使用者
 exports.deleteUser = async (req, res, next) => {
   try {
+    const deletedUser = await userModel.getUserById(req.params.id);
+    if (!deletedUser) return res.status(404).json({ error: "使用者不存在" });
+
+    // ✅ **刪除 R2 大頭貼**
+    if (deletedUser.profile_picture && isCloudflareProxyImage(deletedUser.profile_picture)) {
+      const fileKey = decodeURIComponent(deletedUser.profile_picture.split("key=")[1]);
+      await deleteFromR2(fileKey);
+    }
+
+
     await userModel.deleteUser(req.params.id);
     res.json({ message: "使用者已刪除" });
   } catch (error) {

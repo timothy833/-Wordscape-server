@@ -1,5 +1,6 @@
 const bannerModel = require('../models/bannerModel');
 const { uploadToR2 } = require("../controllers/postController");
+const { deleteFromR2 } = require("../controllers/deleteImageController");
 
 // 取得某個使用者的 Banner (公開 API)
 exports.getBannerByUser = async (req, res, next) => {
@@ -54,6 +55,19 @@ exports.createBanner = async (req, res, next) => {
     }
 };
 
+// ✅ **判斷是否為 Cloudflare 快取代理圖片 //刪除更新使用**
+const isCloudflareProxyImage = (imageUrl) => {
+    if (!imageUrl) return false; // ✅ 防止 `null` 或 `undefined` 錯誤
+
+    console.log(`🌐 檢查是否為 Cloudflare圖片網址: ${imageUrl}`);
+
+    const baseURL = `${process.env.CDN_BASE_URL}/api/image?key=`;
+    
+    // ✅ 直接判斷 imageUrl 是否以 baseURL 開頭
+    return imageUrl.startsWith(baseURL);
+    
+};
+
 // 更新 Banner (需要登入)
 exports.updateBanner = async (req, res, next) => {
     try {
@@ -61,20 +75,32 @@ exports.updateBanner = async (req, res, next) => {
         const { title, subtitle, image_url } = req.body;
         const file = req.file; // ✅ Multer 上傳的檔案
 
+        // 取得舊的 Banner
+        const oldBanner = await bannerModel.getBannerByUserId(user_id);
+        if (!oldBanner) return res.status(404).json({ error: "Banner 不存在" });
+
         let finalImageUrl = image_url;
 
         // ✅ 如果 image_url 是外部 URL，則直接使用
         if (typeof image_url === "string" && image_url.startsWith("http")) {
             finalImageUrl = image_url;
         }
+
+
         // ✅ 如果是上傳圖片，則存到 R2
         else if (file) {
             finalImageUrl = await uploadToR2(file, "banners");
+
+
+            // ✅ **如果舊 Banner 是 Cloudflare 快取圖片，刪除 R2 舊圖片**
+            if (oldBanner.image_url && isCloudflareProxyImage(oldBanner.image_url)) {
+                const fileKey = decodeURIComponent(oldBanner.image_url.split("key=")[1]);
+                await deleteFromR2(fileKey);
+            }
         }
 
+        // ✅ **更新資料庫內的 Banner**
         const updatedBanner = await bannerModel.updateBanner(user_id, title, subtitle, finalImageUrl);
-
-        if (!updatedBanner) return res.status(404).json({ error: 'Banner 不存在' });
 
         res.json({ message: 'Banner 已更新', updatedBanner });
     } catch (error) {
@@ -90,6 +116,13 @@ exports.deleteBanner = async (req, res, next) => {
         const deletedBanner = await bannerModel.deleteBanner(user_id);
 
         if (!deletedBanner) return res.status(404).json({ error: 'Banner 不存在' });
+
+
+        // ✅ **刪除 R2 圖片**
+        if (deletedBanner.image_url && isCloudflareProxyImage(deletedBanner.image_url)) {
+            const fileKey = decodeURIComponent(deletedBanner.image_url.split("key=")[1]);
+            await deleteFromR2(fileKey);
+        }
 
         res.json({ message: 'Banner 已刪除', deletedBanner });
     } catch (error) {
