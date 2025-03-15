@@ -79,54 +79,9 @@ exports.updateComment = async (req, res) => {
   }
 };
 
-const deleteCommentAndReplies = async (commentId, postId) => {
-  try {
-    // 1️⃣ 取得該文章的所有留言（包含巢狀回覆）
-    const allComments = await commentModel.getCommentsWithReplies(postId);
-
-    // 2️⃣ **找出該留言及其所有回覆**
-    const commentsToDelete = [];
-
-    // 遞迴尋找所有回覆留言
-    const findReplies = (comments, targetId) => {
-      for (const comment of comments) {
-        // ✅ **找出當前要刪除的留言**
-        if (comment.id === targetId) {
-          commentsToDelete.push(comment.id);
-        }
-
-        // ✅ **檢查 `parent_comment_id` 是否與 `targetId` 相符**
-        if (comment.parent_comment_id === targetId) {
-          commentsToDelete.push(comment.id);
-          // 🔥 **繼續尋找該回覆的子回覆**
-          findReplies(comment.replies, comment.id);
-        }
-
-        // ✅ **處理巢狀結構（若有子留言）**
-        if (comment.replies.length > 0) {
-          findReplies(comment.replies, targetId);
-        }
-      }
-    };
-
-    findReplies(allComments, commentId);
-
-    // 3️⃣ **批量刪除留言**
-    if (commentsToDelete.length > 0) {
-      for (const id of commentsToDelete) {
-        await commentModel.deleteComment(id);
-      }
-    }
-
-    console.log(`✅ 成功刪除留言 ${commentId} 及其所有回覆`);
-  } catch (error) {
-    console.error(`❌ 刪除留言 ${commentId} 失敗`, error);
-  }
-};
 
 
 // 🔥 **刪除留言 API**
-
 exports.deleteComment = async (req, res) => {
   try {
     const { id } = req.params; // 取得要刪除的留言 ID
@@ -152,8 +107,8 @@ exports.deleteComment = async (req, res) => {
     // 1. 如果 `user_id === post.user_id`（文章作者），允許刪除所有留言
     // 2. 如果 `user_id === comment.user_id`（留言發佈者），允許刪除該留言
     if (user_id === post.user_id || user_id === comment.user_id) {
-       // 🔥 **先刪除該留言及所有回覆**
-       await deleteCommentAndReplies(id, comment.post_id);
+        // 🔥 **直接刪除留言及所有回覆**
+      await commentModel.deleteComment(id);
 
       return res.json({ status: "success", message: "留言已刪除" });
     } 
