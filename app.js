@@ -56,7 +56,7 @@ app.use((req, res, next) => {
 // ✅ 限制所有 API（15 分鐘最多 100 次請求）
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 分鐘
-  max: 100,
+  max: 500,
   message: { error: "請求過於頻繁，請稍後再試" },
   keyGenerator: (req) => req.ip, // ✅ 依據 IP 限制
 });
