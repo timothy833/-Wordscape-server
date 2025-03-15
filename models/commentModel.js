@@ -104,10 +104,6 @@ exports.updateComment = async (id, content) => {
 
 exports.deleteComment = async (id) => {
   try {
-    // **先刪除所有子留言**
-    await db.query(`DELETE FROM comments WHERE parent_comment_id = $1`, [id]);
-
-   // **再刪除父留言**
     await db.query(`DELETE FROM comments WHERE id = $1`, [id]);
     console.log(`✅ 成功刪除留言 ${commentId} 及所有回覆`);
   } catch (error) {
