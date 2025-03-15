@@ -1,4 +1,5 @@
 const commentModel = require('../models/commentModel');
+const postModel = require("../models/postModel"); // 引入文章 Model
 
 
 exports.getAllComments = async (req, res) => {
@@ -80,23 +81,41 @@ exports.updateComment = async (req, res) => {
 
 exports.deleteComment = async (req, res) => {
   try {
-    const { id } = req.params;
-    const user_id = req.user?.id;
+    const { id } = req.params; // 取得要刪除的留言 ID
+    const user_id = req.user?.id; // 取得當前登入使用者 ID
 
     if (!user_id) {
       return res.status(401).json({ status: "error", message: "未授權，請登入" });
     }
 
+      // 取得留言資訊
     const comment = await commentModel.getCommentById(id);
     if (!comment) {
       return res.status(404).json({ status: "error", message: "留言不存在" });
-    }
-    if (comment.user_id !== user_id) {
-      return res.status(403).json({ status: "error", message: "無權刪除該留言" });
+    } // ✅ 確保這裡結束，不會有無法執行的程式碼
+
+    // 取得該留言所屬的文章
+    const post = await postModel.getPostById(comment.post_id); 
+    if (!post) {
+      return res.status(404).json({ status: "error", message: "文章不存在" });
     }
 
-    await commentModel.deleteComment(id);
-    res.json({ status: "success", message: "留言已刪除" });
+       // ✅ 檢查權限：
+    // 1. 如果 `user_id === post.user_id`（文章作者），允許刪除所有留言
+    // 2. 如果 `user_id === comment.user_id`（留言發佈者），允許刪除該留言
+    if (user_id === post.user_id || user_id === comment.user_id) {
+      await commentModel.deleteComment(id); // 執行刪除留言
+      return res.json({ status: "success", message: "留言已刪除" });
+    } 
+
+    return res.status(403).json({ status: "error", message: "無權刪除該留言" });
+  
+    // if (comment.user_id !== user_id) {
+    //   return res.status(403).json({ status: "error", message: "無權刪除該留言" });
+    // }
+
+    // await commentModel.deleteComment(id);
+    // res.json({ status: "success", message: "留言已刪除" });
   } catch (error) {
     console.error("刪除留言失敗:", error);
     res.status(500).json({ status: "error", message: "無法刪除留言" });
