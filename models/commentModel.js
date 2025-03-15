@@ -105,9 +105,9 @@ exports.updateComment = async (id, content) => {
 exports.deleteComment = async (id) => {
   try {
     await db.query(`DELETE FROM comments WHERE id = $1`, [id]);
-    console.log(`✅ 成功刪除留言 ${commentId} 及所有回覆`);
+    console.log(`✅ 成功刪除留言 ${id} 及所有回覆`);
   } catch (error) {
-    console.error(`❌ 刪除留言 ${commentId} 失敗`, error);
+    console.error(`❌ 刪除留言 ${id} 失敗`, error);
   }
   
 };
