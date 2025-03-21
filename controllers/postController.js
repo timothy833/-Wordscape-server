@@ -292,7 +292,7 @@ exports.updatePost = async (req, res) => {
     if (typeof description === "string" && description.trim() !== "" && description.trim() !== oldPost.description) updateFields.description = description.trim();
     if (typeof image_url === "string" && image_url.trim() !== "" && image_url.trim() !== oldPost.image_url) updateFields.image_url = image_url.trim();
 
-    if(typeof content === "string" && content.trim() !== "" && content.trim() !== oldPost.content.trim()){
+    if(typeof content === "string" && content.trim() !== "" && content.trim() !== (oldPost.content || "").trim()){
       updateFields.content = content.trim();
     
       // ✅ **處理封面圖片**
@@ -338,9 +338,9 @@ exports.updatePost = async (req, res) => {
     // ✅ **更新資料庫內的文章**
     const updatedPost = await postModel.updatePost(id, updateFields);
 
-    if (!updatedPost) {
-      return res.status(404).json({ status: "error", message: "文章不存在" });
-    }
+    // if (!updatedPost) {
+    //   return res.status(404).json({ status: "error", message: "文章不存在" });
+    // }
 
     res.json({ status: "success", data: updatedPost });
   } catch (error) {
