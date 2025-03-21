@@ -276,57 +276,67 @@ exports.updatePost = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content ,description, image_url } = req.body;
+    const updateFields = {};
 
-     // 1️⃣ 取得舊文章資料
+    // 1️⃣ 取得舊文章資料
     const oldPost = await postModel.getPostById(id);
     if(!oldPost){
       return res.status(404).json({status: "error", message: "文章不存在"});
     }
+
+    //刪除舊圖片清單
     let deleteImageKeys = [];
 
+    // 動態檢查是否要更新
+    if (typeof title === "string" && title.trim() !== "" && title.trim() !== oldPost.title) updateFields.title = title.trim();
+    if (typeof description === "string" && description.trim() !== "" && description.trim() !== oldPost.description) updateFields.description = description.trim();
+    if (typeof image_url === "string" && image_url.trim() !== "" && image_url.trim() !== oldPost.image_url) updateFields.image_url = image_url.trim();
 
-    // ✅ **處理封面圖片**
-    if (typeof image_url === "string" && image_url.startsWith("http")) {
-      if (oldPost.image_url && isCloudflareProxyImage(oldPost.image_url)) {
-        const fileKey = decodeURIComponent(oldPost.image_url.split("key=")[1]);
-        await deleteFromR2(fileKey);
-      }
-    }// ✅ **如果封面圖片變更，刪除舊的 R2 圖片**
-    else if(image_url !== oldPost.imageUrl && isCloudflareProxyImage(oldPost.image_url)){
-      const fileKey = decodeURIComponent(oldPost.image_url.split("key=")[1]);
-      if (fileKey) deleteImageKeys.push(fileKey);
-    }
-
-    // ✅ **解析 `content` 內的新圖片**
-    const $newContent = cheerio.load(content);
-    let newImageKeys = new Set();
-    $newContent('img').each((_, img)=> {
-      const imgSrc = $newContent(img).attr("src");
-      if(imgSrc && isCloudflareProxyImage(imgSrc)){
-        const newKey = decodeURIComponent(imgSrc.split("key=")[1]);
-        if (newKey) newImageKeys.add(newKey);
-      }
-    })
-
-    // ✅ **解析舊文章 `content` 內的 `<img>` 取得舊圖片**
-    const $oldContent = cheerio.load(oldPost.content);
-    $oldContent('img').each((_, img)=>{
-      const oldImgSrc = $oldContent(img).attr('src');
-      if(oldImgSrc && isCloudflareProxyImage(oldImgSrc)){
-        const oldKey = decodeURIComponent(oldImgSrc.split("key=")[1]);
-        if(oldKey && !newImageKeys.has(oldKey)) {
-          deleteImageKeys.push(oldKey); //只刪除已被移除的圖片
+    if(typeof content === "string" && content.trim() !== "" && content.trim() !== oldPost.content.trim()){
+      updateFields.content = content.trim();
+    
+      // ✅ **處理封面圖片**
+      if (typeof image_url === "string" && image_url.startsWith("http")) {
+        if (oldPost.image_url && isCloudflareProxyImage(oldPost.image_url)) {
+          const fileKey = decodeURIComponent(oldPost.image_url.split("key=")[1]);
+          await deleteFromR2(fileKey);
         }
+      }// ✅ **如果封面圖片變更，刪除舊的 R2 圖片**
+      else if(image_url !== oldPost.imageUrl && isCloudflareProxyImage(oldPost.image_url)){
+        const fileKey = decodeURIComponent(oldPost.image_url.split("key=")[1]);
+        if (fileKey) deleteImageKeys.push(fileKey);
       }
-    });
 
+      // ✅ **解析 `content` 內的新圖片**
+      const $newContent = cheerio.load(content);
+      let newImageKeys = new Set();
+      $newContent('img').each((_, img)=> {
+        const imgSrc = $newContent(img).attr("src");
+        if(imgSrc && isCloudflareProxyImage(imgSrc)){
+          const newKey = decodeURIComponent(imgSrc.split("key=")[1]);
+          if (newKey) newImageKeys.add(newKey);
+        }
+      })
+
+      // ✅ **解析舊文章 `content` 內的 `<img>` 取得舊圖片**
+      const $oldContent = cheerio.load(oldPost.content);
+      $oldContent('img').each((_, img)=>{
+        const oldImgSrc = $oldContent(img).attr('src');
+        if(oldImgSrc && isCloudflareProxyImage(oldImgSrc)){
+          const oldKey = decodeURIComponent(oldImgSrc.split("key=")[1]);
+          if(oldKey && !newImageKeys.has(oldKey)) {
+            deleteImageKeys.push(oldKey); //只刪除已被移除的圖片
+          }
+        }
+      });
+    }
     // ✅ **刪除不再使用的 R2 圖片**
     for(const key of deleteImageKeys){
       await deleteFromR2(key);
     }
 
     // ✅ **更新資料庫內的文章**
-    const updatedPost = await postModel.updatePost(id, { title, content, description, image_url });
+    const updatedPost = await postModel.updatePost(id, updateFields);
 
     if (!updatedPost) {
       return res.status(404).json({ status: "error", message: "文章不存在" });
