@@ -114,7 +114,14 @@ app.get('/', (req, res) => {
   res.send('Express.js Server is running.');
 });
 
-
+// 健康檢查專用 — 給監控機器看的
+app.get('/ping',(req, res)=> {
+  res.status(200).json({
+    message: 'pong',
+    timestamp: new Date(),
+    uptime:process.uptime.toFixed(2) + 'seconds',
+  });
+});
 
 
 // 12. 全域錯誤處理中間件
