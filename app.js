@@ -119,7 +119,7 @@ app.get('/ping',(req, res)=> {
   res.status(200).json({
     message: 'pong',
     timestamp: new Date(),
-    uptime:process.uptime.toFixed(2) + 'seconds',
+    uptime:process.uptime().toFixed(2) + 'seconds',
   });
 });
 
