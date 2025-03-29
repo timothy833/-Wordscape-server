@@ -521,8 +521,18 @@ exports.getUserFavorites = async (user_id) => {
 
 // 取得某個 user 的釘選文章 ID
 exports.getPinnedPostsByUser = async (userId) => {
-  const result = await db('user_pinned_articles').where({ user_id: userId }).select('post_id');
-  return result.map((row) => row.post_id);
+  try {
+    const result = await db('user_pinned_articles').where({ user_id: userId }).select('post_id');
+
+    if (!result || result.length === 0) {
+      return [];
+    }
+
+    return result.map((row) => row.post_id);
+  } catch (error) {
+    console.error('查詢 user_pinned_articles 發生錯誤:', error);
+    throw error; // 👈 一定要 throw
+  }
 };
 
 // 檢查某篇文章是否被該 user 釘選

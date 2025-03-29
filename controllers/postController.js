@@ -527,12 +527,6 @@ exports.getPinnedPostsByUser = async (req, res) => {
     const { userId } = req.params;
     const pinnedPosts = await postModel.getPinnedPostsByUser(userId);
 
-    // 即使沒有釘選資料，也回傳空陣列，避免前端報錯
-    if (!pinnedPosts || pinnedPosts.length === 0) {
-      return res.json({ status: "success", data: [] });
-    }
-
-
     res.json({ status: "success", data: pinnedPosts });
   } catch (error) {
     res.status(500).json({ status: "error", message: "無法取得釘選文章" });
