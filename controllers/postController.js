@@ -529,6 +529,7 @@ exports.getPinnedPostsByUser = async (req, res) => {
 
     res.json({ status: "success", data: pinnedPosts });
   } catch (error) {
+    console.error("❌ getPinnedPostsByUser 錯誤:", error);
     res.status(500).json({ status: "error", message: "無法取得釘選文章" });
   }
 };
