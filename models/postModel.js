@@ -522,31 +522,39 @@ exports.getUserFavorites = async (user_id) => {
 // 取得某個 user 的釘選文章 ID
 exports.getPinnedPostsByUser = async (userId) => {
   try {
-    const result = await db('user_pinned_articles').where({ user_id: userId }).select('post_id');
+    const result = await db.query(
+      `SELECT post_id FROM user_pinned_articles WHERE user_id = $1;`,
+      [userId]
+    );
 
-    if (!result || result.length === 0) {
-      return [];
-    }
-
-    return result.map((row) => row.post_id);
+    return result.rows.map((row) => row.post_id); // 空陣列也會回 []
   } catch (error) {
-    console.error('查詢 user_pinned_articles 發生錯誤:', error);
-    throw error; // 👈 一定要 throw
+    console.error('❌ 查詢 user_pinned_articles 發生錯誤:', error);
+    throw error;
   }
 };
 
 // 檢查某篇文章是否被該 user 釘選
 exports.isPostPinnedByUser = async (userId, postId) => {
-  const result = await db('user_pinned_articles').where({ user_id: userId, post_id: postId }).first();
-  return !!result;
+  const result = await db.query(
+    `SELECT 1 FROM user_pinned_articles WHERE user_id = $1 AND post_id = $2 LIMIT 1;`,
+    [userId, postId]
+  );
+  return result.rows.length > 0;
 };
 
 // 新增釘選
 exports.pinPostForUser = async (userId, postId) => {
-  await db('user_pinned_articles').insert({ user_id: userId, post_id: postId });
+  await db.query(
+    `INSERT INTO user_pinned_articles (user_id, post_id, created_at) VALUES ($1, $2, NOW());`,
+    [userId, postId]
+  );
 };
 
 // 取消釘選
 exports.unpinPostForUser = async (userId, postId) => {
-  await db('user_pinned_articles').where({ user_id: userId, post_id: postId }).del();
+  await db.query(
+    `DELETE FROM user_pinned_articles WHERE user_id = $1 AND post_id = $2;`,
+    [userId, postId]
+  );
 };

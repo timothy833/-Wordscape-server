@@ -555,6 +555,7 @@ exports.togglePinnedPost = async (req, res) => {
       res.json({ status: "success", pinned: true });
     }
   } catch (error) {
+    console.error("❌ 切換釘選文章失敗:", error);
     res.status(500).json({ status: "error", message: "無法切換釘選狀態" });
   }
 };
