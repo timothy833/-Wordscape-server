@@ -517,3 +517,26 @@ exports.getUserFavorites = async (user_id) => {
     throw error;
   }
 };
+
+
+// 取得某個 user 的釘選文章 ID
+exports.getPinnedPostsByUser = async (userId) => {
+  const result = await db('user_pinned_articles').where({ user_id: userId }).select('post_id');
+  return result.map((row) => row.post_id);
+};
+
+// 檢查某篇文章是否被該 user 釘選
+exports.isPostPinnedByUser = async (userId, postId) => {
+  const result = await db('user_pinned_articles').where({ user_id: userId, post_id: postId }).first();
+  return !!result;
+};
+
+// 新增釘選
+exports.pinPostForUser = async (userId, postId) => {
+  await db('user_pinned_articles').insert({ user_id: userId, post_id: postId });
+};
+
+// 取消釘選
+exports.unpinPostForUser = async (userId, postId) => {
+  await db('user_pinned_articles').where({ user_id: userId, post_id: postId }).del();
+};

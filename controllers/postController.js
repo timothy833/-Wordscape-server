@@ -519,3 +519,40 @@ exports.getUserFavorites = async (req, res) => {
     res.status(500).json({ status: "error", message: "無法獲取收藏文章清單" });
   }
 };
+
+
+// 取得某個 user 的釘選文章
+exports.getPinnedPostsByUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const pinnedPosts = await postModel.getPinnedPostsByUser(userId);
+    res.json({ status: "success", data: pinnedPosts });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: "無法取得釘選文章" });
+  }
+};
+
+// 切換釘選文章（需登入且只能釘選自己文章）
+exports.togglePinnedPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user.id;
+
+    const post = await postModel.getPostById(postId);
+    if (!post || post.user_id !== userId) {
+      return res.status(403).json({ status: "error", message: "沒有權限釘選" });
+    }
+
+    const isPinned = await postModel.isPostPinnedByUser(userId, postId);
+
+    if (isPinned) {
+      await postModel.unpinPostForUser(userId, postId);
+      res.json({ status: "success", pinned: false });
+    } else {
+      await postModel.pinPostForUser(userId, postId);
+      res.json({ status: "success", pinned: true });
+    }
+  } catch (error) {
+    res.status(500).json({ status: "error", message: "無法切換釘選狀態" });
+  }
+};

@@ -66,5 +66,10 @@ console.log("✅ 註冊文章路由: /api/posts/:id/status");
 // router.get("/proxy/image", postController.proxyImage);
 
 
+router.get('/pinned/:userId', postController.getPinnedPostsByUser);
+router.post('/:postId/pinned', authMiddleware, postController.togglePinnedPost);
+
+
+
 module.exports = router;
 
